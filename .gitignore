@@ -1,0 +1,5 @@
+# Ignorar arquivos de ambiente e pastas do sistema
+.env
+__pycache__/
+.venv/
+venv/

@@ -1,0 +1,41 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+:root { 
+  --bg: #0a0a12; 
+  --surface: #14142a; 
+  --text: #e8e6f0; 
+  --primary: #7c3aed; 
+}
+
+body { 
+  background-color: var(--bg); 
+  color: var(--text); 
+  font-family: 'Outfit', sans-serif; 
+}
+
+.glass { 
+  background: rgba(20, 20, 42, 0.7); 
+  backdrop-filter: blur(12px); 
+  border: 1px solid rgba(255, 255, 255, 0.05); 
+}
+
+/* Notificação (Toast) */
+.toast { 
+  position: fixed; 
+  bottom: -100px; 
+  left: 50%; 
+  transform: translateX(-50%); 
+  background: var(--primary); 
+  color: white; 
+  padding: 12px 24px; 
+  border-radius: 8px; 
+  transition: 0.3s ease-in-out; 
+  z-index: 1000; 
+  font-weight: 500; 
+}
+.toast.show { bottom: 24px; }
+
+/* Modais */
+.modal { display: none; }
+.modal.active { display: flex; }
