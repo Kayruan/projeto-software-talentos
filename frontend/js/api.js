@@ -1,5 +1,6 @@
 // URL central da nossa API
-const API_URL = "http://127.0.0.1:8000";
+// URL central da nossa API na Nuvem
+const API_URL = "https://conectasul-api.onrender.com";
 
 // Função utilitária para mensagens na tela
 function toast(msg) {
