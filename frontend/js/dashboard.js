@@ -58,22 +58,32 @@ function renderProviders(providers) {
 
 // NOVA FUNÇÃO: Abre os detalhes completos do profissional
 function abrirPerfil(email) {
-  // 1. Acha o prestador na lista usando o email
+  // 1. Acha o prestador na lista global usando o email
   const p = globalProviders.find(prov => prov.email === email);
   if (!p) return toast("Profissional não encontrado.");
 
   const content = document.getElementById('perfil-content');
+  
+  // URL para o Avatar (Gera uma imagem com as iniciais do nome)
   const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
   
-  // Converte os serviços em tags
+  // Converte a string de serviços em tags HTML
   const servicos = p.servicos ? p.servicos.split(',') : ['Serviços Gerais'];
-  const tagsHtml = servicos.map(s => `<span class="bg-purple-900/40 text-purple-300 px-3 py-1 text-sm rounded-full border border-purple-700/50">${esc(s.trim())}</span>`).join('');
+  const tagsHtml = servicos.map(s => `
+    <span class="bg-purple-900/40 text-purple-300 px-3 py-1 text-sm rounded-full border border-purple-700/50">
+      ${esc(s.trim())}
+    </span>
+  `).join('');
 
-  // MOCK DE DADOS (Vamos criar isso de verdade no banco depois)
-  const notaMock = (Math.random() * (5 - 4.2) + 4.2).toFixed(1); // Nota aleatória alta
+  // Limpeza do telefone para o Link do WhatsApp (remove parênteses, espaços e traços)
+  const foneLimpo = p.telefone ? p.telefone.replace(/\D/g, '') : '';
+  const linkZap = `https://wa.me/55${foneLimpo}?text=Olá%20${esc(p.nome)},%20vi%20seu%20perfil%20no%20ConectaSul%20e%20gostaria%20de%20solicitar%20um%20orçamento!`;
+
+  // MOCK DE DADOS (Simulação de avaliações enquanto não criamos a tabela no banco)
+  const notaMock = (Math.random() * (5 - 4.2) + 4.2).toFixed(1); 
   const avaliacoesMock = Math.floor(Math.random() * 30) + 5;
 
-  // 2. Desenha a tela do Perfil
+  // 2. Desenha a tela do Perfil dentro do Modal
   content.innerHTML = `
     <div class="flex flex-col sm:flex-row gap-6 items-start">
       <img src="${avatarUrl}" class="w-24 h-24 rounded-full border-4 border-surface shadow-xl object-cover bg-surface">
@@ -86,14 +96,18 @@ function abrirPerfil(email) {
           <span class="font-bold text-white text-lg">${notaMock}</span>
           <span class="text-gray-400 text-sm">(${avaliacoesMock} avaliações)</span>
           <span class="text-gray-600 mx-2">•</span>
-          <span class="text-gray-400 text-sm flex items-center gap-1"><i data-lucide="map-pin" class="w-4 h-4"></i> ${esc(p.cidade)}</span>
+          <span class="text-gray-400 text-sm flex items-center gap-1">
+            <i data-lucide="map-pin" class="w-4 h-4"></i> ${esc(p.cidade)}
+          </span>
         </div>
       </div>
     </div>
 
     <div class="mt-8">
       <h3 class="text-xl font-bold text-white mb-3">Sobre o profissional</h3>
-      <p class="text-gray-300 leading-relaxed">${esc(p.descricao || 'Este profissional ainda não adicionou uma descrição detalhada sobre seu trabalho.')}</p>
+      <p class="text-gray-300 leading-relaxed">
+        ${esc(p.descricao || 'Este profissional ainda não adicionou uma descrição detalhada sobre seu trabalho.')}
+      </p>
     </div>
 
     <div class="mt-8">
@@ -106,8 +120,8 @@ function abrirPerfil(email) {
       <div class="bg-[#0a0a12] p-4 rounded-xl border border-gray-800">
         <div class="flex justify-between items-start mb-2">
           <div>
-            <span class="font-bold text-gray-200 block">Cliente Anônimo</span>
-            <span class="text-xs text-gray-500">Há 2 dias</span>
+            <span class="font-bold text-gray-200 block">Cliente Local</span>
+            <span class="text-xs text-gray-500">Recente</span>
           </div>
           <div class="flex text-yellow-400">
             <i data-lucide="star" class="w-4 h-4 fill-current"></i>
@@ -117,17 +131,21 @@ function abrirPerfil(email) {
             <i data-lucide="star" class="w-4 h-4 fill-current"></i>
           </div>
         </div>
-        <p class="text-gray-400 text-sm italic">"Excelente trabalho! Muito pontual e resolveu meu problema rapidamente. Recomendo a todos da região."</p>
+        <p class="text-gray-400 text-sm italic">
+          "Excelente atendimento e serviço de qualidade. Recomendo com certeza!"
+        </p>
       </div>
     </div>
 
     <div class="mt-8">
-      <button onclick="toast('Funcionalidade de contato em breve!')" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-xl font-bold text-lg transition-colors shadow-lg shadow-purple-600/20 flex justify-center items-center gap-2">
-        <i data-lucide="message-circle"></i> Solicitar Orçamento
-      </button>
+      <a href="${linkZap}" target="_blank" 
+         class="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-xl font-bold text-lg transition-colors shadow-lg shadow-purple-600/20 flex justify-center items-center gap-2 no-underline">
+        <i data-lucide="message-circle"></i> Solicitar Orçamento via WhatsApp
+      </a>
     </div>
   `;
 
+  // Abre o modal e renderiza os ícones do Lucide
   abrirModal('perfilModal');
   lucide.createIcons();
 }
