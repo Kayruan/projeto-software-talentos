@@ -1,7 +1,8 @@
 # projeto-software-talentos
 
+```SQL
 -- 1. Criar a tabela principal de usuários
-CREATE TABLE IF NOT EXISTS usuarios (
+```CREATE TABLE IF NOT EXISTS usuarios (
     -- Identificação e Login
     id SERIAL PRIMARY KEY,
     nome TEXT NOT NULL,
@@ -20,7 +21,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     
     -- Metadados de Controle
     criado_em TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+);```
 
 -- 2. Inserir um Prestador de Teste (Exemplo para validar o Dashboard)
 -- Lembre-se: no seu sistema real, a senha deve ser enviada via hash pelo Python
@@ -36,3 +37,4 @@ VALUES (
     'Especialista em instalações residenciais e manutenção de ar-condicionado com 10 anos de experiência.', 
     'Instalação, Manutenção, Quadros Elétricos'
 );
+```
