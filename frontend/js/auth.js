@@ -12,19 +12,20 @@ async function doLogin() {
       const data = await res.json();
       
       if (res.ok) {
+        // Salva os dados, incluindo o is_admin: true
         localStorage.setItem('conectasul_session', JSON.stringify(data.user));
-        fecharModais();
-        checkSession();
-        toast("Login realizado com sucesso!");
+        
+        // REDIRECIONA PARA O SISTEMA IMEDIATAMENTE
+        window.location.replace('dashboard.html');
       } else {
         toast(data.detail || "Erro no login");
       }
     } catch (e) {
       toast("Erro ao conectar com o servidor.");
     }
-  }
+}
   
-  async function doSignup() {
+async function doSignup() {
     const dados = {
       nome: document.getElementById('cad-nome').value,
       email: document.getElementById('cad-email').value,
@@ -56,10 +57,12 @@ async function doLogin() {
     } catch (e) {
       toast("Erro ao conectar com o servidor.");
     }
-  }
+}
   
-  function logout() {
+function logout() {
+    // Apaga os dados
     localStorage.removeItem('conectasul_session');
-    checkSession();
-    toast("Você saiu da conta.");
-  }
+    
+    // REDIRECIONA PARA A TELA DE LOGIN IMEDIATAMENTE
+    window.location.replace('index.html');
+}
