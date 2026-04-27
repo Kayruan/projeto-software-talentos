@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR" class="h-full">
+<head>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ConectaSul - Dashboard</title>
+  <script>
+    if (!localStorage.getItem('conectasul_session')) {
+        window.location.replace('login.html');
+    }
+  </script>
+  
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/styles.css">
+
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { outfit: ['Outfit', 'sans-serif'], space: ['Space Grotesk', 'sans-serif'] }, colors: { primary: '#7c3aed', surface: '#14142a' } } } }
+  </script>
+</head>
+<body class="flex flex-col min-h-screen bg-[#050508] text-white">
+
+  <nav class="glass sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b border-gray-800/50">
+    <div class="flex items-center gap-2">
+      <i data-lucide="zap" class="text-purple-500 w-8 h-8"></i>
+      <h1 class="text-2xl font-bold font-space tracking-tight text-white">ConectaSul🚀</h1>
+    </div>
+    <div id="auth-section" class="flex gap-4 items-center"></div>
+  </nav>
+
+  <header class="py-16 px-6 text-center">
+    <h2 class="text-4xl md:text-5xl font-bold mb-6 text-white">Encontre os melhores talentos na sua região</h2>
+    <div class="flex justify-center gap-8 mt-12 mb-8 flex-wrap">
+      <div class="text-center glass p-4 rounded-xl w-32 border border-gray-800/50"><p id="stat-providers" class="text-3xl font-bold text-purple-400">0</p><p class="text-sm text-gray-400 mt-1">Profissionais</p></div>
+      <div class="text-center glass p-4 rounded-xl w-32 border border-gray-800/50"><p id="stat-categories" class="text-3xl font-bold text-purple-400">0</p><p class="text-sm text-gray-400 mt-1">Categorias</p></div>
+      <div class="text-center glass p-4 rounded-xl w-32 border border-gray-800/50"><p id="stat-cities" class="text-3xl font-bold text-purple-400">0</p><p class="text-sm text-gray-400 mt-1">Cidades</p></div>
+    </div>
+  </header>
+
+  <main class="flex-1 container mx-auto px-6 pb-20">
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+      <h3 class="text-2xl font-bold text-white">Profissionais Disponíveis</h3>
+      <div class="relative w-full sm:w-72">
+        <i data-lucide="search" class="absolute left-3 top-3.5 w-4 h-4 text-gray-400"></i>
+        <input type="text" id="search-input" placeholder="Buscar profissional ou categoria..." class="w-full bg-[#0a0a12] border border-gray-800 rounded-xl py-3 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors shadow-inner">
+      </div>
+    </div>
+    
+    <div id="providers-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  </main>
+
+  <div id="toast" class="toast flex items-center gap-2 shadow-xl shadow-purple-500/20 bg-purple-900 text-white px-4 py-3 rounded-lg fixed bottom-4 right-4 translate-y-20 opacity-0 transition-all z-50">
+    <i data-lucide="info" class="w-5 h-5"></i>
+    <span id="toast-msg" class="font-medium"></span>
+  </div>
+
+  <div id="perfilModal" class="modal fixed inset-0 bg-black/80 items-center justify-center z-[100] backdrop-blur-sm hidden">
+    <div class="bg-[#14142a] w-full max-w-2xl border border-gray-800 relative max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl">
+      
+      <div class="h-32 bg-gradient-to-r from-purple-900 to-purple-600 relative">
+        <button onclick="fecharModais()" class="absolute top-4 right-4 text-white hover:text-purple-300 bg-black/40 p-2 rounded-full backdrop-blur-md transition-colors"><i data-lucide="x"></i></button>
+      </div>
+
+      <div id="perfil-content" class="px-8 pb-8 -mt-12 relative z-10">
+         </div>
+
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+
+</body>
+</html>

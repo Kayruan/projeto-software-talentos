@@ -14,10 +14,12 @@ async function login(email, senha) {
 
         const data = await response.json();
 
+        // Dentro da função login(email, senha), onde diz response.ok:
         if (response.ok) {
-            // A Mágica: Salva os dados do usuário no navegador
             localStorage.setItem('conectasul_session', JSON.stringify(data.user));
+            window.location.href = 'dashboard.html'; // MUDOU AQUI
             return data.user;
+
         } else {
             // Mostra o erro que veio do Python (ex: "Email ou senha incorretos")
             alert(data.detail || "Erro ao fazer login");
