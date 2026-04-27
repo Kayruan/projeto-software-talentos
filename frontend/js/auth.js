@@ -1,6 +1,6 @@
 async function doLogin() {
-    const email = document.getElementById('login-email').value;
-    const senha = document.getElementById('login-pass').value;
+    const email = document.getElementById('email').value;
+    const senha = document.getElementById('senha').value;
   
     try {
       const res = await fetch(`${API_URL}/login`, {

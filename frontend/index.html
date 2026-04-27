@@ -37,12 +37,25 @@
     <script>
         document.getElementById('login-form').onsubmit = async (e) => {
             e.preventDefault();
+            
+            // Muda o texto do botão para dar um feedback visual
+            const btn = e.target.querySelector('button');
+            const textoOriginal = btn.innerText;
+            btn.innerText = "Entrando...";
+            
             const email = document.getElementById('email').value;
             const senha = document.getElementById('senha').value;
 
-            // Chama sua função de login (garanta que ela salve no localStorage)
+            // Chama a função da API
             const result = await login(email, senha); 
-            if (result) window.location.href = 'index.html';
+            
+            // Se deu certo, vai para o dashboard!
+            if (result) {
+                window.location.replace('dashboard.html');
+            } else {
+                // Se deu erro, volta o texto do botão
+                btn.innerText = textoOriginal;
+            }
         };
     </script>
 </body>
