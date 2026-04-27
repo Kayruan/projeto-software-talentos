@@ -336,6 +336,9 @@ function checkSession() {
 }
 
 function logout() {
+  // Limpa os dados da sessão
   localStorage.removeItem('conectasul_session');
-  window.location.replace('index.html'); // Manda de volta para o Login
+  
+  // Redireciona para a porta da frente (seu novo index.html de login)
+  window.location.replace('index.html'); 
 }
