@@ -77,3 +77,40 @@ def deletar_usuario(usuario_id: str, admin_id: str):
             
     # 3. Se não for administrador, barra a requisição com Erro 403
     raise HTTPException(status_code=403, detail="Acesso negado. Apenas administradores podem realizar esta ação.")
+
+# ==========================================
+# ROTAS DE PERFIL E AVALIAÇÃO
+# ==========================================
+
+@router.put("/perfil/{usuario_id}")
+def editar_perfil(usuario_id: str, dados: dict):
+    try:
+        # Atualiza os dados do usuário no banco
+        response = supabase.table("usuarios").update(dados).eq("id", usuario_id).execute()
+        return {"status": "sucesso", "user": response.data[0]}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao atualizar perfil: {str(e)}")
+
+@router.post("/avaliar")
+def avaliar_prestador(avaliacao: dict):
+    try:
+        # 1. Salva a nova avaliação
+        supabase.table("avaliacoes").insert(avaliacao).execute()
+        
+        # 2. Busca todas as avaliações desse prestador para recalcular a média
+        prestador_id = avaliacao['prestador_id']
+        todas_av = supabase.table("avaliacoes").select("nota").eq("prestador_id", prestador_id).execute()
+        
+        notas = [av['nota'] for av in todas_av.data]
+        total_avaliacoes = len(notas)
+        nova_media = sum(notas) / total_avaliacoes if total_avaliacoes > 0 else 0
+        
+        # 3. Atualiza a nota média no perfil do prestador
+        supabase.table("usuarios").update({
+            "media_nota": round(nova_media, 2),
+            "total_avaliacoes": total_avaliacoes
+        }).eq("id", prestador_id).execute()
+        
+        return {"status": "sucesso", "nova_media": nova_media}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao avaliar: {str(e)}")
