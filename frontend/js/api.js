@@ -1,5 +1,5 @@
 // Substitua pela URL do seu Render (ou deixe localhost se estiver testando no PC)
-const API_URL = "https://sua-api-no-render.onrender.com"; 
+const API_URL =" https://conectasul-api.onrender.com";
 
 // ==========================================
 // FUNÇÃO DE LOGIN
