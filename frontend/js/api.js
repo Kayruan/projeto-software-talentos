@@ -1,5 +1,5 @@
-// Substitua pela URL do seu Render (ou deixe localhost se estiver testando no PC)
-const API_URL =" https://conectasul-api.onrender.com";
+// REMOVIDO O ESPAÇO ANTES DO HTTPS!
+const API_URL = "https://conectasul-api.onrender.com";
 
 // ==========================================
 // FUNÇÃO DE LOGIN
@@ -14,14 +14,11 @@ async function login(email, senha) {
 
         const data = await response.json();
 
-        // Dentro da função login(email, senha), onde diz response.ok:
         if (response.ok) {
             localStorage.setItem('conectasul_session', JSON.stringify(data.user));
-            window.location.href = 'dashboard.html'; // MUDOU AQUI
+            window.location.replace('dashboard.html'); // Usando replace por segurança
             return data.user;
-
         } else {
-            // Mostra o erro que veio do Python (ex: "Email ou senha incorretos")
             alert(data.detail || "Erro ao fazer login");
             return null;
         }
@@ -47,7 +44,7 @@ async function registrar(usuario) {
 
         if (response.ok) {
             alert("Cadastro realizado com sucesso! Redirecionando para o login...");
-            window.location.href = 'login.html'; // Manda o usuário para logar
+            window.location.replace('index.html'); // MUDOU AQUI: Redireciona para o index.html
         } else {
             alert(data.detail || "Erro ao cadastrar");
         }
