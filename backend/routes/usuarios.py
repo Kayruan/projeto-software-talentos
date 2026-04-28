@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from models import LoginRequest, RegistroRequest
+from models import LoginRequest, RegistroRequest, AgendamentoRequest, AvaliacaoRequest
 from database import supabase
 
 # Criamos um "mini-app" para as rotas de usuários
@@ -114,3 +114,57 @@ def avaliar_prestador(avaliacao: dict):
         return {"status": "sucesso", "nova_media": nova_media}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Erro ao avaliar: {str(e)}")
+    
+    # ==========================================
+# ROTA DE ADMIN: BANIR USUÁRIO
+# ==========================================
+@router.delete("/admin/usuarios/{usuario_id}")
+def banir_usuario(usuario_id: str, admin_id: str):
+    # 1. Verifica se quem está tentando banir é realmente um Admin
+    admin_check = supabase.table("usuários").select("is_admin").eq("id", admin_id).execute()
+    
+    if not admin_check.data or not admin_check.data[0].get("is_admin"):
+        raise HTTPException(status_code=403, detail="Acesso negado. Apenas administradores podem banir contas.")
+
+    # 2. Apaga o usuário do banco de dados (Lembrando do acento em "usuários")
+    try:
+        resposta = supabase.table("usuários").delete().eq("id", usuario_id).execute()
+        return {"message": "Usuário banido e apagado com sucesso!"}
+    except Exception as e:
+        # Se der erro aqui, geralmente é porque o usuário tem avaliações ou agendamentos salvos (Foreign Key)
+        raise HTTPException(status_code=400, detail=f"Erro ao apagar no banco: {str(e)}")
+    # ==========================================
+# ROTA: AGENDAR SERVIÇO
+# ==========================================
+@router.post("/agendamentos")
+def criar_agendamento(agenda: AgendamentoRequest):
+    try:
+        dados = {
+            "prestador_id": agenda.prestador_id,
+            "cliente_id": agenda.cliente_id,
+            "data_hora": agenda.data_hora,
+            "descricao_servico": agenda.descricao_servico,
+            "status": "pendente" # Todo agendamento nasce como pendente
+        }
+        # ATENÇÃO: Confirme se o nome da sua tabela no Supabase é "agendamentos" mesmo
+        resposta = supabase.table("agendamentos").insert(dados).execute()
+        return {"message": "Agendamento criado com sucesso!"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao salvar agendamento: {str(e)}")
+
+# ==========================================
+# ROTA: AVALIAR PROFISSIONAL
+# ==========================================
+@router.post("/avaliar")
+def avaliar_profissional(aval: AvaliacaoRequest):
+    try:
+        dados = {
+            "prestador_id": aval.prestador_id,
+            "cliente_id": aval.cliente_id,
+            "nota": aval.nota
+        }
+        # ATENÇÃO: Confirme se o nome da sua tabela no Supabase é "avaliacoes" mesmo (sem acento ou cedilha)
+        resposta = supabase.table("avaliacoes").insert(dados).execute()
+        return {"message": "Avaliação salva com sucesso!"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao salvar avaliação: {str(e)}")

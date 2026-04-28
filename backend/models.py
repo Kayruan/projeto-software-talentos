@@ -16,3 +16,13 @@ class RegistroRequest(BaseModel):
     categoria: str = ""
     descricao: str = ""
     servicos: str = ""
+class AgendamentoRequest(BaseModel):
+    prestador_id: str
+    cliente_id: str
+    data_hora: str
+    descricao_servico: str
+
+class AvaliacaoRequest(BaseModel):
+    prestador_id: str
+    cliente_id: str
+    nota: int
