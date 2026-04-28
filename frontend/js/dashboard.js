@@ -7,7 +7,6 @@ let currentUser = null;
 window.onload = () => {
   const sessionStr = localStorage.getItem('conectasul_session');
   
-  // Se não estiver logado, chuta para a tela inicial (Login)
   if (!sessionStr) {
     window.location.replace('index.html');
     return;
@@ -70,9 +69,11 @@ function renderProviders(providers) {
       `<span class="bg-purple-900/40 text-purple-300 text-xs px-3 py-1 rounded-full border border-purple-700/50">${esc(s.trim())}</span>`
     ).join('');
 
-    const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
+    // LÓGICA DA FOTO: Usa a foto_url se existir, senão usa o avatar de iniciais
+    const avatarUrl = (p.foto_url && p.foto_url.trim() !== "") 
+      ? p.foto_url 
+      : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
     
-    // Puxa a nota real do banco de dados (se for nulo, mostra 0.0)
     const notaReal = parseFloat(p.media_nota || 0).toFixed(1);
 
     const btnAdmin = (currentUser && currentUser.is_admin && currentUser.id !== p.id) 
@@ -121,16 +122,18 @@ function abrirPerfil(email) {
   if (!p) return toast("Profissional não encontrado.");
 
   const content = document.getElementById('perfil-content');
-  const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
+  
+  // LÓGICA DA FOTO: Prioriza a foto cadastrada
+  const avatarUrl = (p.foto_url && p.foto_url.trim() !== "") 
+    ? p.foto_url 
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
   
   const servicos = p.servicos ? p.servicos.split(',') : ['Serviços Gerais'];
   const tagsHtml = servicos.map(s => `<span class="bg-purple-900/40 text-purple-300 px-3 py-1 text-sm rounded-full border border-purple-700/50">${esc(s.trim())}</span>`).join('');
 
-  // Pega os dados reais
   const notaReal = parseFloat(p.media_nota || 0).toFixed(1);
   const totalAv = p.total_avaliacoes || 0;
 
-  // Renderiza a parte superior (Foto e Info)
   let html = `
     <div class="flex flex-col sm:flex-row gap-6 items-start">
       <img src="${avatarUrl}" class="w-24 h-24 rounded-full border-4 border-surface shadow-xl object-cover bg-[#14142a]">
@@ -158,7 +161,6 @@ function abrirPerfil(email) {
     </div>
   `;
 
-  // Define o que aparece embaixo: Botão de Editar (se for o próprio usuário) ou Agendamento/Avaliação
   if (p.id === currentUser.id) {
       html += `
         <div class="mt-8 border-t border-gray-800 pt-6">
@@ -212,6 +214,10 @@ function carregarFormEdicao() {
         <h3 class="text-2xl font-bold text-white mb-4 mt-8">Editar Perfil</h3>
         <form onsubmit="salvarPerfil(event)" class="space-y-4">
             <div>
+                <label class="text-sm text-gray-400">URL da Foto de Perfil</label>
+                <input type="text" id="edit-foto" value="${esc(currentUser.foto_url || '')}" placeholder="https://exemplo.com/suafoto.jpg" class="w-full bg-black/50 border border-gray-700 rounded-lg p-3 text-white focus:border-purple-500 outline-none">
+            </div>
+            <div>
                 <label class="text-sm text-gray-400">Sua Profissão / Categoria</label>
                 <input type="text" id="edit-cat" value="${esc(currentUser.categoria || '')}" class="w-full bg-black/50 border border-gray-700 rounded-lg p-3 text-white">
             </div>
@@ -238,6 +244,7 @@ function carregarFormEdicao() {
 async function salvarPerfil(e) {
     e.preventDefault();
     const dados = {
+        foto_url: document.getElementById('edit-foto').value, // ADICIONADO AQUI!
         categoria: document.getElementById('edit-cat').value,
         cidade: document.getElementById('edit-cid').value,
         servicos: document.getElementById('edit-serv').value,
@@ -253,12 +260,11 @@ async function salvarPerfil(e) {
         
         if (res.ok) {
             const data = await res.json();
-            // Atualiza os dados locais e a sessão
             currentUser = data.user;
             localStorage.setItem('conectasul_session', JSON.stringify(currentUser));
             toast("Perfil atualizado com sucesso!");
             loadProvidersFromAPI();
-            abrirPerfil(currentUser.email); // Volta para a tela de visualização
+            abrirPerfil(currentUser.email);
         } else { toast("Erro ao salvar."); }
     } catch(err) { toast("Erro de conexão."); }
 }
@@ -318,7 +324,6 @@ function checkSession() {
   if (currentUser) {
     const badgeAdmin = currentUser.is_admin ? '<span class="text-xs bg-red-600 text-white px-2 py-0.5 rounded ml-2">ADMIN</span>' : '';
     
-    // Se o usuário for prestador, mostra o botão da Agenda
     const btnAgenda = currentUser.tipo_conta === 'prestador' 
         ? `<a href="agenda.html" class="bg-purple-900/30 border border-purple-500/50 hover:bg-purple-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors ml-4 hidden sm:block">📅 Minha Agenda</a>` 
         : '';
@@ -336,9 +341,6 @@ function checkSession() {
 }
 
 function logout() {
-  // Limpa os dados da sessão
   localStorage.removeItem('conectasul_session');
-  
-  // Redireciona para a porta da frente (seu novo index.html de login)
   window.location.replace('index.html'); 
 }

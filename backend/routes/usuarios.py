@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from models import LoginRequest, RegistroRequest, AgendamentoRequest, AvaliacaoRequest
+from models import LoginRequest, RegistroRequest, AgendamentoRequest, AvaliacaoRequest, PerfilUpdate
 from database import supabase
 
 # Criamos um "mini-app" para as rotas de usuários
@@ -87,11 +87,22 @@ def deletar_usuario(usuario_id: str, admin_id: str):
 # ==========================================
 
 @router.put("/perfil/{usuario_id}")
-def editar_perfil(usuario_id: str, dados: dict):
+def editar_perfil(usuario_id: str, request: PerfilUpdate):
     try:
-        # Atualiza os dados do usuário no banco
-        response = supabase.table("usuarios").update(dados).eq("id", usuario_id).execute()
+        # Transformamos o modelo em um dicionário, ignorando o que estiver vazio
+        dados_atualizados = request.model_dump(exclude_unset=True)
+        
+        if not dados_atualizados:
+            raise HTTPException(status_code=400, detail="Nenhum dado fornecido para atualização.")
+
+        # Atualiza no banco (usando o nome correto da tabela: "usuarios")
+        response = supabase.table("usuarios").update(dados_atualizados).eq("id", usuario_id).execute()
+        
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
         return {"status": "sucesso", "user": response.data[0]}
+        
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Erro ao atualizar perfil: {str(e)}")
 

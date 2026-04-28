@@ -26,3 +26,11 @@ class AvaliacaoRequest(BaseModel):
     prestador_id: str
     cliente_id: str
     nota: int
+
+class PerfilUpdate(BaseModel):
+    categoria: str = None
+    cidade: str = None
+    servicos: str = None
+    descricao: str = None
+    foto_url: str = None  # <-- A estrela do show!
+    telefone: str = None   # Aproveitamos para permitir editar o Zap
