@@ -49,18 +49,16 @@ def criar_agendamento(agenda: AgendamentoRequest):
 @router.get("/agendamentos/prestador/{prestador_id}")
 def listar_agenda_prestador(prestador_id: str): 
     try:
-        # Usamos o formato: tabela_relacionada!coluna_que_faz_o_link(campos)
+        # Usamos o nome da constraint que criamos no SQL acima
         response = supabase.table("agendamentos")\
-            .select("*, cliente:usuarios!cliente_id(nome, telefone)")\
+            .select("*, usuarios!fk_cliente(nome, telefone)")\
             .eq("prestador_id", prestador_id)\
             .order("data_hora", ascending=True)\
             .execute()
             
         return response.data
     except Exception as e:
-        # Isso vai nos mostrar o erro real no log do Render se falhar
         raise HTTPException(status_code=400, detail=f"Erro ao buscar agenda: {str(e)}")
-
 
 # ==========================================
 # ROTAS DE ADMINISTRAÇÃO
