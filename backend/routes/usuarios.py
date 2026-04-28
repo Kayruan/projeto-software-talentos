@@ -49,16 +49,21 @@ def editar_perfil(usuario_id: str, request: PerfilUpdate):
         raise HTTPException(status_code=400, detail=f"Erro ao atualizar perfil: {str(e)}")
 
 # ==========================================
-# ROTAS DE AGENDAMENTO
+# ROTAS DE AGENDAMENTO (VERSÃO FINAL CORRIGIDA)
 # ==========================================
 
 @router.post("/agendamentos")
 def criar_agendamento(agenda: AgendamentoRequest):
     try:
+        # Converte o modelo Pydantic para dicionário
         dados = agenda.model_dump()
-        dados["status"] = "pendente" # Garantimos o status inicial
         
+        # Garante que todo agendamento novo comece como 'pendente'
+        dados["status"] = "pendente"
+        
+        # Insere na tabela de agendamentos
         response = supabase.table("agendamentos").insert(dados).execute()
+        
         return {"message": "Agendamento criado com sucesso!", "data": response.data}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Erro ao criar agendamento: {str(e)}")
@@ -66,17 +71,19 @@ def criar_agendamento(agenda: AgendamentoRequest):
 @router.get("/agendamentos/prestador/{prestador_id}")
 def listar_agenda_prestador(prestador_id: str): 
     try:
-        # Uso do !cliente_id para evitar o Erro 400 (Ambiguidade)
-        response = supabase.table("agendamentos")\
-            .select("*, cliente:usuarios!cliente_id(nome, telefone)")\
-            .eq("prestador_id", prestador_id)\
-            .order("data_hora", ascending=True)\
+        # A correção aqui é usar 'desc=False' para ordem crescente (A-Z)
+        # e garantir que o .execute() esteja encadeado corretamente
+        response = supabase.table("agendamentos") \
+            .select("*, cliente:usuarios!cliente_id(nome, telefone)") \
+            .eq("prestador_id", prestador_id) \
+            .order("data_hora", desc=False) \
             .execute()
             
         return response.data
     except Exception as e:
+        # O erro 'ascending' foi resolvido trocando para 'desc=False'
         raise HTTPException(status_code=400, detail=f"Erro ao buscar agenda: {str(e)}")
-
+    
 # ==========================================
 # ROTA DE AVALIAÇÃO (COM RECALCULO DE MÉDIA)
 # ==========================================
