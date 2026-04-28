@@ -1,75 +1,106 @@
-// Inicia a tela
-window.onload = async () => {
-    lucide.createIcons();
-    const session = localStorage.getItem('conectasul_session');
-    if (!session) { window.location.replace('index.html'); return; }
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConectaSul - Minha Agenda</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="flex flex-col min-h-screen bg-[#050508] text-white">
+
+    <nav class="glass sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b border-gray-800/50">
+        <div class="flex items-center gap-2">
+            <i data-lucide="calendar" class="text-purple-500 w-8 h-8"></i>
+            <h1 class="text-2xl font-bold font-space tracking-tight text-white">Minha Agenda</h1>
+        </div>
+        <a href="dashboard.html" class="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i> Voltar ao Início
+        </a>
+    </nav>
+
+    <main class="flex-1 container mx-auto px-6 py-12 max-w-4xl">
+        <h2 class="text-3xl font-bold mb-2">Pedidos de Serviço</h2>
+        <p class="text-gray-400 mb-8">Aqui estão os clientes que solicitaram um horário com você pelo sistema.</p>
+
+        <div id="agenda-lista" class="space-y-4">
+            <div class="text-center py-12 text-gray-500">Carregando sua agenda...</div>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
     
-    const user = JSON.parse(session);
-    
-    // Segurança: Se um cliente tentar acessar a agenda, volta pro início
-    if (user.tipo_conta !== 'prestador') { window.location.replace('dashboard.html'); return; }
-
-    carregarAgenda(user.id);
-};
-
-async function carregarAgenda(prestadorId) {
-    const lista = document.getElementById('agenda-lista');
-    try {
-        // Usa a URL global da API que está no seu api.js
-        const res = await fetch(`${API_URL}/agendamentos/prestador/${prestadorId}`);
-        if (!res.ok) throw new Error("Erro ao buscar agenda");
-        
-        const agendamentos = await res.json();
-
-        if (!agendamentos || agendamentos.length === 0) {
-            lista.innerHTML = `
-                <div class="glass p-8 rounded-2xl text-center border border-gray-800">
-                    <i data-lucide="calendar-x" class="w-12 h-12 text-gray-600 mx-auto mb-3"></i>
-                    <p class="text-gray-400">Você ainda não tem nenhum agendamento.</p>
-                </div>
-            `;
+    <script>
+        // O código JavaScript PRECISA estar aqui dentro destas tags script
+        window.onload = async () => {
             lucide.createIcons();
-            return;
-        }
-
-        lista.innerHTML = '';
-        agendamentos.forEach(ag => {
-            // Formata a data (Ex: 25/10/2026 às 14:30)
-            const dataObj = new Date(ag.data_hora);
-            const dataFormatada = dataObj.toLocaleDateString('pt-BR') + ' às ' + dataObj.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+            const session = localStorage.getItem('conectasul_session');
+            if (!session) { window.location.replace('index.html'); return; }
             
-            // --- AJUSTE AQUI: Mudamos de 'usuarios' para 'cliente' ---
-            const nomeCliente = ag.cliente ? ag.cliente.nome : 'Cliente Desconhecido';
-            const telefoneCliente = ag.cliente ? ag.cliente.telefone : '';
-            
-            const foneLimpo = telefoneCliente ? telefoneCliente.replace(/\D/g, '') : '';
-            const linkZap = foneLimpo ? `https://wa.me/55${foneLimpo}?text=Olá ${encodeURIComponent(nomeCliente)}, sobre o seu agendamento no ConectaSul...` : '#';
+            const user = JSON.parse(session);
+            if (user.tipo_conta !== 'prestador') { window.location.replace('dashboard.html'); return; }
 
-            // Cores para o status
-            const statusCor = ag.status === 'pendente' ? 'bg-yellow-900/30 text-yellow-500 border-yellow-700/50' : 'bg-green-900/30 text-green-500 border-green-700/50';
+            carregarAgenda(user.id);
+        };
 
-            lista.innerHTML += `
-                <div class="glass p-6 rounded-2xl border border-purple-500/30 flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
-                    <div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="bg-purple-900/50 text-purple-300 text-xs px-2 py-1 rounded font-bold">${dataFormatada}</span>
-                            <span class="${statusCor} text-[10px] px-2 py-0.5 rounded border uppercase font-bold">${ag.status}</span>
+        async function carregarAgenda(prestadorId) {
+            const lista = document.getElementById('agenda-lista');
+            try {
+                const res = await fetch(`${API_URL}/agendamentos/prestador/${prestadorId}`);
+                if (!res.ok) throw new Error("Erro ao buscar agenda");
+                
+                const agendamentos = await res.json();
+
+                if (!agendamentos || agendamentos.length === 0) {
+                    lista.innerHTML = `
+                        <div class="glass p-8 rounded-2xl text-center border border-gray-800">
+                            <i data-lucide="calendar-x" class="w-12 h-12 text-gray-600 mx-auto mb-3"></i>
+                            <p class="text-gray-400">Você ainda não tem nenhum agendamento.</p>
                         </div>
-                        <h3 class="font-bold text-xl text-white mt-2">${nomeCliente}</h3>
-                        <p class="text-gray-400 text-sm mt-1">Serviço: <span class="text-gray-300">${ag.descricao_servico}</span></p>
-                    </div>
+                    `;
+                    lucide.createIcons();
+                    return;
+                }
+
+                lista.innerHTML = '';
+                agendamentos.forEach(ag => {
+                    const dataObj = new Date(ag.data_hora);
+                    const dataFormatada = dataObj.toLocaleDateString('pt-BR') + ' às ' + dataObj.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
                     
-                    ${foneLimpo ? `
-                    <a href="${linkZap}" target="_blank" class="shrink-0 bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2">
-                        <i data-lucide="message-circle" class="w-4 h-4"></i> Chamar no Zap
-                    </a>
-                    ` : `<span class="text-xs text-gray-500 italic">Sem telefone cadastrado</span>`}
-                </div>
-            `;
-        });
-        lucide.createIcons();
-    } catch (err) {
-        console.error(err);
-        lista.innerHTML = '<div class="text-red-400 text-center py-4">Erro ao carregar a agenda. Verifique o console.</div>';
-    }
-}
+                    const nomeCliente = ag.cliente ? ag.cliente.nome : 'Cliente Desconhecido';
+                    const telefoneCliente = ag.cliente ? ag.cliente.telefone : '';
+                    
+                    const foneLimpo = telefoneCliente ? telefoneCliente.replace(/\D/g, '') : '';
+                    const linkZap = foneLimpo ? `https://wa.me/55${foneLimpo}?text=Olá ${encodeURIComponent(nomeCliente)}, sobre o seu agendamento no ConectaSul...` : '#';
+                    const statusCor = ag.status === 'pendente' ? 'bg-yellow-900/30 text-yellow-500 border-yellow-700/50' : 'bg-green-900/30 text-green-500 border-green-700/50';
+
+                    lista.innerHTML += `
+                        <div class="glass p-6 rounded-2xl border border-purple-500/30 flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="bg-purple-900/50 text-purple-300 text-xs px-2 py-1 rounded font-bold">${dataFormatada}</span>
+                                    <span class="${statusCor} text-[10px] px-2 py-0.5 rounded border uppercase font-bold">${ag.status}</span>
+                                </div>
+                                <h3 class="font-bold text-xl text-white mt-2">${nomeCliente}</h3>
+                                <p class="text-gray-400 text-sm mt-1">Serviço: <span class="text-gray-300">${ag.descricao_servico}</span></p>
+                            </div>
+                            
+                            ${foneLimpo ? `
+                            <a href="${linkZap}" target="_blank" class="shrink-0 bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2">
+                                <i data-lucide="message-circle" class="w-4 h-4"></i> Chamar no Zap
+                            </a>
+                            ` : `<span class="text-xs text-gray-500 italic">Sem telefone cadastrado</span>`}
+                        </div>
+                    `;
+                });
+                lucide.createIcons();
+            } catch (err) {
+                console.error(err);
+                lista.innerHTML = '<div class="text-red-400 text-center py-4">Erro ao carregar a agenda.</div>';
+            }
+        }
+    </script>
+</body>
+</html>
