@@ -71,17 +71,15 @@ def criar_agendamento(agenda: AgendamentoRequest):
 @router.get("/agendamentos/prestador/{prestador_id}")
 def listar_agenda_prestador(prestador_id: str): 
     try:
-        # A correção aqui é usar 'desc=False' para ordem crescente (A-Z)
-        # e garantir que o .execute() esteja encadeado corretamente
-        response = supabase.table("agendamentos") \
-            .select("*, cliente:usuarios!cliente_id(nome, telefone)") \
-            .eq("prestador_id", prestador_id) \
-            .order("data_hora", desc=False) \
+        # Mudamos de !cliente_id para !fk_cliente conforme o erro sugeriu
+        response = supabase.table("agendamentos")\
+            .select("*, cliente:usuarios!fk_cliente(nome, telefone)")\
+            .eq("prestador_id", prestador_id)\
+            .order("data_hora", desc=False)\
             .execute()
             
         return response.data
     except Exception as e:
-        # O erro 'ascending' foi resolvido trocando para 'desc=False'
         raise HTTPException(status_code=400, detail=f"Erro ao buscar agenda: {str(e)}")
     
 # ==========================================
