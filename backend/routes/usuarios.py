@@ -49,17 +49,16 @@ def criar_agendamento(agenda: AgendamentoRequest):
 @router.get("/agendamentos/prestador/{prestador_id}")
 def listar_agenda_prestador(prestador_id: str): 
     try:
-        # Simplificamos o select. 
-        # O Supabase vai buscar na tabela 'usuarios' (sem acento) que agora tem a coluna telefone.
+        # Usamos o formato: tabela_relacionada!coluna_que_faz_o_link(campos)
         response = supabase.table("agendamentos")\
-            .select("*, usuarios(nome, telefone)")\
+            .select("*, cliente:usuarios!cliente_id(nome, telefone)")\
             .eq("prestador_id", prestador_id)\
             .order("data_hora", ascending=True)\
             .execute()
             
         return response.data
     except Exception as e:
-        # Esse detalhe vai nos ajudar a debugar caso o banco ainda reclame de algo
+        # Isso vai nos mostrar o erro real no log do Render se falhar
         raise HTTPException(status_code=400, detail=f"Erro ao buscar agenda: {str(e)}")
 
 
