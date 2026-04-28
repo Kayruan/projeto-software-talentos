@@ -36,11 +36,16 @@ def registro(dados: RegistroRequest):
 # ==========================================
 # ROTAS DE AGENDAMENTO
 # ==========================================
+
 @router.post("/agendamentos")
 def criar_agendamento(agenda: AgendamentoRequest):
     try:
-        # Usamos o .model_dump() (ou .dict()) para converter o modelo em dicionário
+        # Converte o modelo Pydantic para dicionário
         dados = agenda.model_dump()
+        
+        # Garante que todo agendamento novo comece como 'pendente'
+        dados["status"] = "pendente"
+        
         response = supabase.table("agendamentos").insert(dados).execute()
         return {"message": "Agendamento criado com sucesso", "data": response.data}
     except Exception as e:
@@ -49,17 +54,20 @@ def criar_agendamento(agenda: AgendamentoRequest):
 @router.get("/agendamentos/prestador/{prestador_id}")
 def listar_agenda_prestador(prestador_id: str): 
     try:
-        # Usamos o nome da constraint que criamos no SQL acima
+        # EXPLICAÇÃO DO SELECT:
+        # 1. "*" traz tudo da tabela agendamentos
+        # 2. "cliente:usuarios" diz: busque na tabela usuarios e coloque o resultado na chave 'cliente'
+        # 3. "!cliente_id" diz: use a relação que está na coluna 'cliente_id' (Isso mata o Erro 400)
         response = supabase.table("agendamentos")\
-            .select("*, usuarios!fk_cliente(nome, telefone)")\
+            .select("*, cliente:usuarios!cliente_id(nome, telefone)")\
             .eq("prestador_id", prestador_id)\
             .order("data_hora", ascending=True)\
             .execute()
             
         return response.data
     except Exception as e:
+        # Se der erro, o log do Render vai mostrar exatamente o porquê
         raise HTTPException(status_code=400, detail=f"Erro ao buscar agenda: {str(e)}")
-
 # ==========================================
 # ROTAS DE ADMINISTRAÇÃO
 # ==========================================
