@@ -129,3 +129,38 @@ def banir_usuario(usuario_id: str, admin_id: str):
         return {"message": "Usuário banido com sucesso!"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Erro ao apagar: {str(e)}")
+    
+    # ==========================================
+# GESTÃO DE AGENDAMENTOS (OPÇÃO 2)
+# ==========================================
+
+@router.get("/agendamentos/prestador/{prestador_id}")
+def listar_agenda_prestador(prestador_id: str): 
+    try:
+        # Buscamos tudo da agenda unindo com os dados do cliente
+        # Usamos !fk_cliente para evitar ambiguidades no Supabase
+        response = supabase.table("agendamentos")\
+            .select("*, cliente:usuarios!fk_cliente(nome, telefone)")\
+            .eq("prestador_id", prestador_id)\
+            .order("data_hora", desc=False)\
+            .execute()
+            
+        return response.data
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao buscar agenda: {str(e)}")
+
+@router.patch("/agendamentos/{agendamento_id}/status")
+def atualizar_status_agendamento(agendamento_id: str, novo_status: str):
+    try:
+        # Atualiza a coluna 'status' para o valor que vier do frontend
+        response = supabase.table("agendamentos")\
+            .update({"status": novo_status})\
+            .eq("id", agendamento_id)\
+            .execute()
+            
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
+            
+        return {"message": f"Status atualizado para {novo_status}"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
