@@ -36,25 +36,30 @@ def registro(dados: RegistroRequest):
 # ==========================================
 # ROTAS DE AGENDAMENTO
 # ==========================================
-
 @router.post("/agendamentos")
-def criar_agendamento(agendamento: dict):
-    # Recebe os dados do agendamento (prestador_id, cliente_id, data_hora, descricao_servico)
+def criar_agendamento(agenda: AgendamentoRequest):
     try:
-        response = supabase.table("agendamentos").insert(agendamento).execute()
-        return response.data
+        # Usamos o .model_dump() (ou .dict()) para converter o modelo em dicionário
+        dados = agenda.model_dump()
+        response = supabase.table("agendamentos").insert(dados).execute()
+        return {"message": "Agendamento criado com sucesso", "data": response.data}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Erro ao criar agendamento: {str(e)}")
 
 @router.get("/agendamentos/prestador/{prestador_id}")
 def listar_agenda_prestador(prestador_id: str): 
     try:
-        # Busca os agendamentos e traz junto o nome e telefone do cliente que marcou
+        # Simplificamos o select. 
+        # O Supabase vai buscar na tabela 'usuarios' (sem acento) que agora tem a coluna telefone.
         response = supabase.table("agendamentos")\
-            .select("*, usuarios!agendamentos_cliente_id_fkey(nome, telefone)")\
-            .eq("prestador_id", prestador_id).execute()
+            .select("*, usuarios(nome, telefone)")\
+            .eq("prestador_id", prestador_id)\
+            .order("data_hora", ascending=True)\
+            .execute()
+            
         return response.data
     except Exception as e:
+        # Esse detalhe vai nos ajudar a debugar caso o banco ainda reclame de algo
         raise HTTPException(status_code=400, detail=f"Erro ao buscar agenda: {str(e)}")
 
 
