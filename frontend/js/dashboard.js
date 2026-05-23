@@ -40,11 +40,14 @@ function abrirModal(id) {
     document.getElementById(id).classList.add('flex'); 
 }
 
+// CORREÇÃO UNIVERSAL DO FECHAMENTO DE MODAIS
 function fecharModais() { 
-    document.querySelectorAll('.modal').forEach(m => { 
-        m.classList.add('hidden'); 
-        m.classList.remove('flex'); 
-    }); 
+    // Fecha pelo ID direto para garantir o funcionamento independente de classes CSS
+    const modal = document.getElementById('perfilModal');
+    if(modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
 }
 
 function logout() {
@@ -446,29 +449,17 @@ function carregarFormEdicao() {
     `;
 }
 
+// CORREÇÃO DO SALVAR PERFIL (GARANTINDO A PERSISTÊNCIA DA FOTO URL)
 async function salvarPerfil(e) {
     e.preventDefault();
-    const dadosTexto = {
-        categoria: document.getElementById('edit-cat').value,
-        cidade: document.getElementById('edit-cid').value,
-        servicos: document.getElementById('edit-serv').value,
-        descricao: document.getElementById('edit-desc').value
-    };
+    exibirToast("Atualizando dados...");
 
     try {
-        let resTexto = await fetch(`${API_URL}/perfil/${currentUser.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dadosTexto)
-        });
-        
-        if (!resTexto.ok) throw new Error("Erro ao salvar textos");
-        let dataTexto = await resTexto.json();
-        currentUser = dataTexto.user;
-
+        // 1. PRIMEIRO REALIZA O UPLOAD DA FOTO SE HOUVER ARQUIVO
+        let urlFotoAtualizada = currentUser.foto_url || "";
         const inputFoto = document.getElementById('edit-foto-file');
+        
         if (inputFoto && inputFoto.files.length > 0) {
-            exibirToast("Enviando imagem para a nuvem...");
             const formData = new FormData();
             formData.append("arquivo", inputFoto.files[0]);
 
@@ -479,15 +470,37 @@ async function salvarPerfil(e) {
 
             if (resFoto.ok) {
                 let dataFoto = await resFoto.json();
-                currentUser.foto_url = dataFoto.foto_url; 
+                urlFotoAtualizada = dataFoto.foto_url; // Captura a URL pública real gerada pelo storage
             }
         }
 
+        // 2. AGORA ENVIA O CORPO TEXTUAL INCLUINDO A NOVA FOTO_URL CORRETAMENTE
+        const dadosTexto = {
+            categoria: document.getElementById('edit-cat').value,
+            cidade: document.getElementById('edit-cid').value,
+            servicos: document.getElementById('edit-serv').value,
+            descricao: document.getElementById('edit-desc').value,
+            foto_url: urlFotoAtualizada // <-- INJETADO PARA NÃO PERDER A REFERÊNCIA NO BANCO
+        };
+
+        let resTexto = await fetch(`${API_URL}/perfil/${currentUser.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dadosTexto)
+        });
+        
+        if (!resTexto.ok) throw new Error("Erro ao salvar textos");
+        let dataTexto = await resTexto.json();
+        
+        // Atualiza a sessão local com a resposta limpa do banco
+        currentUser = dataTexto.user;
         localStorage.setItem('conectasul_session', JSON.stringify(currentUser));
+        
         exibirToast("Perfil atualizado com sucesso!");
-        carregarPrestadores();
-        abrirPerfil(currentUser.email);
+        carregarPrestadores(); // Recarrega os avatares do Grid principal
+        fecharModais(); // Fecha a janela após salvar
     } catch(err) { 
+        console.error(err);
         exibirToast("Erro ao sincronizar o perfil."); 
     }
 }

@@ -186,20 +186,29 @@ def listar_avaliacoes_prestador(prestador_id: str):
         raise HTTPException(status_code=400, detail=str(e))
 
 # ==========================================
-# 5. ADMINISTRAÇÃO E MODERAÇÃO
+# 5. ADMINISTRAÇÃO E MODERAÇÃO (CORRIGIDO)
 # ==========================================
 
 @router.delete("/admin/usuarios/{usuario_id}")
 def banir_usuario(usuario_id: str, admin_id: str):
+    # 1. Verifica permissão de administrador
     admin_check = supabase.table("usuarios").select("is_admin").eq("id", admin_id).execute()
+    
     if not admin_check.data or not admin_check.data[0].get("is_admin"):
         raise HTTPException(status_code=403, detail="Acesso negado. Apenas administradores.")
 
     try:
+        # 2. Remove vínculos primeiro para evitar erro de Foreign Key (Chave Estrangeira)
+        supabase.table("avaliacoes").delete().eq("prestador_id", usuario_id).execute()
+        supabase.table("avaliacoes").delete().eq("cliente_id", usuario_id).execute()
+        supabase.table("agendamentos").delete().eq("prestador_id", usuario_id).execute()
+        supabase.table("agendamentos").delete().eq("cliente_id", usuario_id).execute()
+
+        # 3. Agora sim, apaga o usuário em segurança
         supabase.table("usuarios").delete().eq("id", usuario_id).execute()
-        return {"message": "Usuário banido com sucesso!"}
+        return {"message": "Usuário e histórico banidos com sucesso!"}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Erro ao apagar: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Erro ao apagar integridade: {str(e)}")
 
 # ==========================================
 # 6. UPLOAD DE FOTOS (STORAGE)
