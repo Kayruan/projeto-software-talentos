@@ -14,7 +14,6 @@
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
   <link rel="stylesheet" href="css/styles.css">
 
   <script>
@@ -26,76 +25,124 @@
             space: ['Space Grotesk', 'sans-serif'] 
           }, 
           colors: { 
-            primary: '#7c3aed', 
-            surface: '#14142a' 
+            primary: '#8b5cf6', 
+            surface: '#0f0f1a',
+            panel: '#161626'
           } 
         } 
       } 
     }
   </script>
 </head>
-<body class="flex flex-col min-h-screen bg-[#050508] text-white">
+<body class="flex flex-col min-h-screen bg-[#050508] text-gray-100 font-outfit selection:bg-purple-500/30">
 
-  <nav class="glass sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b border-gray-800/50">
-    <div class="flex items-center gap-2">
-      <i data-lucide="zap" class="text-purple-500 w-8 h-8"></i>
-      <h1 class="text-2xl font-bold font-space tracking-tight text-white">ConectaSul🚀</h1>
+  <nav class="bg-panel border-b border-gray-800/80 sticky top-0 z-50 px-6 py-4 flex justify-between items-center shadow-xl backdrop-blur-md bg-opacity-95">
+    <div class="flex items-center gap-3">
+      <div class="bg-purple-600 p-2 rounded-xl shadow-lg shadow-purple-950/50">
+        <i data-lucide="zap" class="text-white w-6 h-6"></i>
+      </div>
+      <h1 class="text-2xl font-bold font-space tracking-tight text-white">Conecta<span class="text-purple-500">Sul</span></h1>
     </div>
     
-    <div id="auth-section" class="flex gap-4 items-center"></div>
+    <div class="flex items-center gap-6">
+      <div class="hidden md:flex items-center gap-6 font-medium">
+        <a href="dashboard.html" class="text-purple-400 font-bold flex items-center gap-2"><i data-lucide="layout-grid" class="w-4 h-4"></i> Profissionais</a>
+        <a href="agenda.html" class="text-gray-400 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4"></i> Minha Agenda</a>
+      </div>
+      <div class="h-6 w-px bg-gray-800 hidden md:block"></div>
+      <div id="auth-section" class="flex gap-3 items-center"></div>
+    </div>
   </nav>
 
-  <header class="py-16 px-6 text-center">
-    <h2 class="text-4xl md:text-5xl font-bold mb-6 text-white">Encontre os melhores talentos na sua região</h2>
-    <div class="flex justify-center gap-8 mt-12 mb-8 flex-wrap">
-      <div class="text-center glass p-4 rounded-xl w-32 border border-gray-800/50">
-        <p id="stat-providers" class="text-3xl font-bold text-purple-400">0</p>
-        <p class="text-sm text-gray-400 mt-1">Profissionais</p>
+  <header class="py-12 px-6 text-center max-w-4xl mx-auto w-full">
+    <h2 class="text-4xl md:text-5xl font-black font-space mb-4 text-white leading-tight">Encontre os melhores talentos na sua região</h2>
+    <p class="text-gray-400 max-w-xl mx-auto text-base">Filtre profissionais autônomos verificados, gerencie seus orçamentos e feche negócios direto pelo WhatsApp.</p>
+    
+    <div class="flex justify-center gap-6 mt-10 mb-2 flex-wrap">
+      <div class="text-center bg-panel px-6 py-4 rounded-xl w-36 border border-gray-800/60 shadow-md">
+        <p id="stat-providers" class="text-3xl font-extrabold text-purple-400">0</p>
+        <p class="text-xs text-gray-400 font-medium mt-1 uppercase tracking-wider">Profissionais</p>
       </div>
-      <div class="text-center glass p-4 rounded-xl w-32 border border-gray-800/50">
-        <p id="stat-categories" class="text-3xl font-bold text-purple-400">0</p>
-        <p class="text-sm text-gray-400 mt-1">Categorias</p>
+      <div class="text-center bg-panel px-6 py-4 rounded-xl w-36 border border-gray-800/60 shadow-md">
+        <p id="stat-categories" class="text-3xl font-extrabold text-purple-400">0</p>
+        <p class="text-xs text-gray-400 font-medium mt-1 uppercase tracking-wider">Categorias</p>
       </div>
-      <div class="text-center glass p-4 rounded-xl w-32 border border-gray-800/50">
-        <p id="stat-cities" class="text-3xl font-bold text-purple-400">0</p>
-        <p class="text-sm text-gray-400 mt-1">Cidades</p>
+      <div class="text-center bg-panel px-6 py-4 rounded-xl w-36 border border-gray-800/60 shadow-md">
+        <p id="stat-cities" class="text-3xl font-extrabold text-purple-400">0</p>
+        <p class="text-xs text-gray-400 font-medium mt-1 uppercase tracking-wider">Cidades</p>
       </div>
     </div>
   </header>
 
-  <main class="flex-1 container mx-auto px-6 pb-20">
-    <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-      <h3 class="text-2xl font-bold text-white">Profissionais Disponíveis</h3>
-      <div class="relative w-full sm:w-72">
-        <i data-lucide="search" class="absolute left-3 top-3.5 w-4 h-4 text-gray-400"></i>
-        <input type="text" id="search-input" placeholder="Buscar profissional..." class="w-full bg-[#0a0a12] border border-gray-800 rounded-xl py-3 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors shadow-inner">
+  <section class="container mx-auto px-6 mb-8 max-w-7xl">
+    <div class="bg-panel border border-gray-800 p-5 rounded-2xl flex flex-col gap-4 shadow-xl">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-2">
+          <i data-lucide="sliders-horizontal" class="text-purple-400 w-5 h-5"></i>
+          <h4 class="font-bold text-lg text-white">Filtros Inteligentes</h4>
+        </div>
+        <button onclick="limparFiltros()" class="text-xs text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1">
+          <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Limpar Filtros
+        </button>
+      </div>
+      
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Cidade</label>
+          <select id="filter-city" onchange="aplicarFiltros()" class="w-full bg-[#0a0a14] border border-gray-800 rounded-xl py-2.5 px-3 text-sm text-white focus:border-purple-500 outline-none">
+            <option value="">Todas as cidades</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Categoria</label>
+          <select id="filter-category" onchange="aplicarFiltros()" class="w-full bg-[#0a0a14] border border-gray-800 rounded-xl py-2.5 px-3 text-sm text-white focus:border-purple-500 outline-none">
+            <option value="">Todas as categorias</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Ordenar por</label>
+          <select id="filter-order" onchange="aplicarFiltros()" class="w-full bg-[#0a0a14] border border-gray-800 rounded-xl py-2.5 px-3 text-sm text-white focus:border-purple-500 outline-none">
+            <option value="melhores">Melhores Avaliações (★)</option>
+            <option value="nome">Nome (A-Z)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main class="flex-1 container mx-auto px-6 pb-20 max-w-7xl">
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 border-b border-gray-800/60 pb-4">
+      <h3 class="text-xl font-bold text-white flex items-center gap-2">
+        <i data-lucide="users" class="text-purple-500 w-5 h-5"></i> Profissionais Disponíveis
+      </h3>
+      <div class="relative w-full sm:w-80">
+        <i data-lucide="search" class="absolute left-3.5 top-3.5 w-4 h-4 text-gray-400"></i>
+        <input type="text" id="search-input" oninput="aplicarFiltros()" placeholder="Buscar nome ou serviço..." class="w-full bg-panel border border-gray-800 rounded-xl py-3 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-purple-500 transition-all shadow-inner">
       </div>
     </div>
     
     <div id="providers-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-       </div>
+       <div class="col-span-full text-center py-12 text-gray-500">Carregando especialistas...</div>
+    </div>
   </main>
 
-  <div id="toast" class="toast flex items-center gap-2 shadow-xl shadow-purple-500/20 bg-purple-900 text-white px-4 py-3 rounded-lg fixed bottom-4 right-4 translate-y-20 opacity-0 transition-all z-[200]">
-    <i data-lucide="info" class="w-5 h-5"></i>
-    <span id="toast-msg" class="font-medium"></span>
+  <div id="toast" class="flex items-center gap-2 shadow-2xl bg-purple-900 border border-purple-700 text-white px-4 py-3 rounded-xl fixed bottom-4 right-4 translate-y-20 opacity-0 transition-all z-[200]">
+    <i data-lucide="info" class="w-5 h-5 text-purple-300"></i>
+    <span id="toast-msg" class="font-medium text-sm"></span>
   </div>
 
-  <div id="perfilModal" class="modal fixed inset-0 bg-black/80 items-center justify-center z-[100] backdrop-blur-sm hidden">
-    <div class="bg-[#14142a] w-full max-w-2xl border border-gray-800 relative max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl">
-      
-      <div class="h-32 bg-gradient-to-r from-purple-900 to-purple-600 relative">
-        <button onclick="fecharModais()" class="absolute top-4 right-4 text-white hover:text-purple-300 bg-black/40 p-2 rounded-full backdrop-blur-md transition-colors">
-          <i data-lucide="x"></i>
+  <div id="perfilModal" class="fixed inset-0 bg-black/85 items-center justify-center z-[100] backdrop-blur-md hidden p-4">
+    <div class="bg-[#0f0f1a] w-full max-w-2xl border border-gray-800 relative max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl">
+      <div class="h-28 bg-gradient-to-r from-purple-950 via-purple-800 to-indigo-950 relative">
+        <button onclick="fecharModais()" class="absolute top-4 right-4 text-white hover:text-red-400 bg-black/50 p-2 rounded-full backdrop-blur-md transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
-
-      <div id="perfil-content" class="px-8 pb-8 -mt-12 relative z-10"></div>
+      <div id="perfil-content" class="px-6 pb-8 -mt-10 relative z-10"></div>
     </div>
   </div>
 
   <script src="js/api.js"></script>
   <script src="js/dashboard.js"></script>
-
 </body>
 </html>

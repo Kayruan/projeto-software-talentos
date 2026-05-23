@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from models import LoginRequest, RegistroRequest, AgendamentoRequest, AvaliacaoRequest, PerfilUpdate
 from database import supabase
 
@@ -11,7 +11,6 @@ router = APIRouter()
 
 @router.post("/login")
 def login(dados: LoginRequest):
-    # Busca o usuário por email e senha
     response = supabase.table("usuarios").select("*").eq("email", dados.email).eq("senha", dados.senha).execute()
     if not response.data:
         raise HTTPException(status_code=401, detail="Email ou senha incorretos")
@@ -19,7 +18,6 @@ def login(dados: LoginRequest):
 
 @router.post("/registro")
 def registro(dados: RegistroRequest):
-    # Verifica se o email já existe para evitar duplicatas
     busca = supabase.table("usuarios").select("*").eq("email", dados.email).execute()
     if busca.data:
         raise HTTPException(status_code=400, detail="Este email já está cadastrado")
@@ -34,14 +32,12 @@ def registro(dados: RegistroRequest):
 
 @router.get("/prestadores")
 def listar_prestadores():
-    # Retorna todos os usuários que são prestadores
     response = supabase.table("usuarios").select("*").eq("tipo_conta", "prestador").execute()
     return response.data
 
 @router.put("/perfil/{usuario_id}")
 def editar_perfil(usuario_id: str, request: PerfilUpdate):
     try:
-        # Atualiza apenas os campos enviados no JSON (exclude_unset=True)
         dados_atualizados = request.model_dump(exclude_unset=True)
         if not dados_atualizados:
             raise HTTPException(status_code=400, detail="Nenhum dado fornecido.")
@@ -56,14 +52,15 @@ def editar_perfil(usuario_id: str, request: PerfilUpdate):
         raise HTTPException(status_code=400, detail=f"Erro ao atualizar perfil: {str(e)}")
 
 # ==========================================
-# 3. SISTEMA DE AGENDAMENTOS (OPÇÃO 2 - FLOW)
+# 3. SISTEMA DE AGENDAMENTOS E ORÇAMENTOS
 # ==========================================
 
 @router.post("/agendamentos")
 def criar_agendamento(agenda: AgendamentoRequest):
     try:
         dados = agenda.model_dump()
-        dados["status"] = "pendente" # Todo agendamento nasce pendente
+        dados["status"] = "pendente"
+        dados["valor_orcamento"] = 0.0 
         
         response = supabase.table("agendamentos").insert(dados).execute()
         return {"message": "Agendamento criado com sucesso!", "data": response.data}
@@ -73,62 +70,120 @@ def criar_agendamento(agenda: AgendamentoRequest):
 @router.get("/agendamentos/prestador/{prestador_id}")
 def listar_agenda_prestador(prestador_id: str): 
     try:
-        # Busca agenda unindo com usuários via fk_cliente para evitar erro 400
-        # Ordenado por data (desc=False -> do mais antigo para o mais novo)
         response = supabase.table("agendamentos")\
             .select("*, cliente:usuarios!fk_cliente(nome, telefone)")\
             .eq("prestador_id", prestador_id)\
             .order("data_hora", desc=False)\
             .execute()
-            
         return response.data
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Erro ao buscar agenda: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Erro ao buscar agenda do prestador: {str(e)}")
+
+@router.get("/agendamentos/cliente/{cliente_id}")
+def listar_agenda_cliente(cliente_id: str):
+    try:
+        response = supabase.table("agendamentos")\
+            .select("*, prestador:usuarios!prestador_id(nome, telefone)")\
+            .eq("cliente_id", cliente_id)\
+            .order("data_hora", desc=False)\
+            .execute()
+        return response.data
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao buscar agenda do cliente: {str(e)}")
 
 @router.patch("/agendamentos/{agendamento_id}/status")
-def atualizar_status_agendamento(agendamento_id: str, novo_status: str):
+def atualizar_status_agendamento(agendamento_id: str, novo_status: str, valor_orcamento: float = None):
     try:
-        # Rota dinâmica: serve para 'aceito' e 'concluido'
+        dados_atualizacao = {"status": novo_status}
+        
+        if valor_orcamento is not None:
+            dados_atualizacao["valor_orcamento"] = valor_orcamento
+            
         response = supabase.table("agendamentos")\
-            .update({"status": novo_status})\
+            .update(dados_atualizacao)\
             .eq("id", agendamento_id)\
             .execute()
             
         if not response.data:
             raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
             
-        return {"message": f"Status atualizado para {novo_status}"}
+        return {"message": f"Status atualizado para {novo_status} com sucesso!"}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=f"Erro ao atualizar status: {str(e)}")
 
 # ==========================================
-# 4. AVALIAÇÕES E MÉDIAS
+# 4. AVALIAÇÕES E MÉDIAS (VERSÃO PREMIUM COM FOTO E TEXTO)
 # ==========================================
 
 @router.post("/avaliar")
-def avaliar_prestador(aval: AvaliacaoRequest):
+async def avaliar_prestador(
+    prestador_id: str = Form(...),
+    cliente_id: str = Form(...),
+    nota: int = Form(...),
+    comentario: Optional[str] = Form(""),
+    arquivo: Optional[UploadFile] = File(None) # A foto do serviço agora é opcional
+):
     try:
-        # 1. Salva a nova avaliação na tabela
-        dados = aval.model_dump()
-        supabase.table("avaliacoes").insert(dados).execute()
+        foto_url = ""
+
+        # 1. Se o cliente anexou uma foto do serviço realizado, faz o upload para o Storage
+        if arquivo:
+            conteudo_foto = await arquivo.read()
+            extensao = arquivo.filename.split(".")[-1]
+            # Cria um nome único baseado no carimbo de tempo/ids para não sobrescrever
+            nome_arquivo = f"av_{prestador_id}_{cliente_id}.{extensao}"
+            
+            # Envia o arquivo para a mesma pasta 'fotos-conectasul' que criamos
+            supabase.storage.from_("fotos-conectasul").upload(
+                path=nome_arquivo,
+                file=conteudo_foto,
+                file_options={"content-type": arquivo.content_type, "x-upsert": "true"}
+            )
+            # Pega o link público da foto gerada
+            foto_url = supabase.storage.from_("fotos-conectasul").get_public_url(nome_arquivo)
+
+        # 2. Monta o dicionário para salvar na tabela 'avaliacoes'
+        dados_avaliacao = {
+            "prestador_id": prestador_id,
+            "cliente_id": cliente_id,
+            "nota": nota,
+            "comentario": comentario,
+            "foto_url": foto_url
+        }
         
-        # 2. Recalcula a média em tempo real
-        prestador_id = aval.prestador_id
+        # Insere a avaliação completa no banco de dados
+        supabase.table("avaliacoes").insert(dados_avaliacao).execute()
+        
+        # 3. Recalcula a média de estrelas em tempo real do prestador
         todas_av = supabase.table("avaliacoes").select("nota").eq("prestador_id", prestador_id).execute()
         
         notas = [av['nota'] for av in todas_av.data]
         total = len(notas)
         nova_media = sum(notas) / total if total > 0 else 0
         
-        # 3. Atualiza o perfil do prestador com o novo Score
+        # 4. Atualiza o perfil do prestador com o novo score totalizado
         supabase.table("usuarios").update({
             "media_nota": round(nova_media, 2),
             "total_avaliacoes": total
         }).eq("id", prestador_id).execute()
         
-        return {"status": "sucesso", "nova_media": nova_media}
+        return {"status": "sucesso", "nova_media": nova_media, "foto_url": foto_url}
+        
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Erro ao avaliar: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Erro ao registrar avaliação: {str(e)}")
+    
+
+@router.get("/avaliacoes/prestador/{prestador_id}")
+def listar_avaliacoes_prestador(prestador_id: str):
+    try:
+        # Busca os comentários trazendo o nome do cliente que avaliou
+        response = supabase.table("avaliacoes")\
+            .select("*, cliente:usuarios!cliente_id(nome)")\
+            .eq("prestador_id", prestador_id)\
+            .execute()
+        return response.data
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 # ==========================================
 # 5. ADMINISTRAÇÃO E MODERAÇÃO
@@ -136,9 +191,7 @@ def avaliar_prestador(aval: AvaliacaoRequest):
 
 @router.delete("/admin/usuarios/{usuario_id}")
 def banir_usuario(usuario_id: str, admin_id: str):
-    # Verifica permissão de administrador
     admin_check = supabase.table("usuarios").select("is_admin").eq("id", admin_id).execute()
-    
     if not admin_check.data or not admin_check.data[0].get("is_admin"):
         raise HTTPException(status_code=403, detail="Acesso negado. Apenas administradores.")
 
@@ -147,3 +200,28 @@ def banir_usuario(usuario_id: str, admin_id: str):
         return {"message": "Usuário banido com sucesso!"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Erro ao apagar: {str(e)}")
+
+# ==========================================
+# 6. UPLOAD DE FOTOS (STORAGE)
+# ==========================================
+
+@router.post("/perfil/{usuario_id}/upload-foto")
+async def upload_foto_perfil(usuario_id: str, arquivo: UploadFile = File(...)):
+    try:
+        conteudo_arquivo = await arquivo.read()
+        extensao = arquivo.filename.split(".")[-1]
+        nome_arquivo = f"perfil_{usuario_id}.{extensao}"
+        
+        supabase.storage.from_("fotos-conectasul").upload(
+            path=nome_arquivo,
+            file=conteudo_arquivo,
+            file_options={"content-type": arquivo.content_type, "x-upsert": "true"}
+        )
+        
+        url_publica = supabase.storage.from_("fotos-conectasul").get_public_url(nome_arquivo)
+        supabase.table("usuarios").update({"foto_url": url_publica}).eq("id", usuario_id).execute()
+        
+        return {"status": "sucesso", "foto_url": url_publica}
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro no upload do arquivo: {str(e)}")

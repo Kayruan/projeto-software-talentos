@@ -1,5 +1,12 @@
+---
+
+
+Adicionei o `python-multipart`, que é o pacote obrigatório para o FastAPI conseguir aceitar arquivos de upload (`File` e `Form`) que implementamos no JavaScript.
+
+```text
 fastapi
 uvicorn[standard]
 supabase
 pydantic
 python-dotenv
+python-multipart

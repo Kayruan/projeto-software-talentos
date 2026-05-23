@@ -9,26 +9,39 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="flex flex-col min-h-screen bg-[#050508] text-white">
+<body class="flex flex-col min-h-screen bg-[#050508] text-gray-100">
 
-    <nav class="glass sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b border-gray-800/50">
-        <div class="flex items-center gap-2">
-            <i data-lucide="calendar" class="text-purple-500 w-8 h-8"></i>
-            <h1 class="text-2xl font-bold font-space tracking-tight text-white">Minha Agenda</h1>
+    <nav class="bg-[#161626] border-b border-gray-800/80 sticky top-0 z-50 px-6 py-4 flex justify-between items-center shadow-xl backdrop-blur-md">
+        <div class="flex items-center gap-3">
+            <div class="bg-purple-600 p-2 rounded-xl shadow-lg">
+                <i data-lucide="zap" class="text-white w-6 h-6"></i>
+            </div>
+            <h1 class="text-2xl font-bold font-space tracking-tight text-white">Conecta<span class="text-purple-500">Sul</span></h1>
         </div>
-        <a href="dashboard.html" class="text-gray-400 hover:text-white flex items-center gap-2 transition-colors">
-            <i data-lucide="arrow-left" class="w-4 h-4"></i> Voltar ao Início
-        </a>
+        
+        <div class="flex items-center gap-6">
+            <div class="hidden md:flex items-center gap-6 font-medium">
+                <a href="dashboard.html" class="text-gray-400 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="layout-grid" class="w-4 h-4"></i> Profissionais</a>
+                <a href="agenda.html" class="text-purple-400 font-bold flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4"></i> Minha Agenda</a>
+            </div>
+            <div class="h-6 w-px bg-gray-800 hidden md:block"></div>
+            <button onclick="localStorage.removeItem('conectasul_session'); window.location.replace('index.html');" class="text-red-400 hover:text-red-300 text-sm font-bold flex items-center gap-2">
+                <i data-lucide="log-out" class="w-4 h-4"></i> Sair
+            </button>
+        </div>
     </nav>
 
     <main class="flex-1 container mx-auto px-6 py-12 max-w-4xl">
-        <h2 class="text-3xl font-bold mb-2 font-space">Pedidos de Serviço</h2>
-        <p class="text-gray-400 mb-8">Gerencie suas solicitações e atualize o progresso do trabalho.</p>
+        <div class="mb-8">
+            <span id="role-badge" class="bg-purple-900/40 border border-purple-700/60 text-purple-300 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-widest">Painel</span>
+            <h2 class="text-3xl font-extrabold font-space text-white mt-3 mb-2">Central de Serviços e Orçamentos</h2>
+            <p class="text-gray-400 text-sm">Acompanhe solicitações, envie preços de serviços ou aprove orçamentos pendentes.</p>
+        </div>
 
         <div id="agenda-lista" class="space-y-4">
             <div class="text-center py-12 text-gray-500">
                 <div class="animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-purple-500 rounded-full mb-4"></div>
-                <p>Sincronizando agenda...</p>
+                <p>Estruturando painel de serviços...</p>
             </div>
         </div>
     </main>
@@ -36,30 +49,36 @@
     <script src="js/api.js"></script>
     
     <script>
+        let currentUser = null;
+
         window.onload = async () => {
             lucide.createIcons();
             const session = localStorage.getItem('conectasul_session');
             if (!session) { window.location.replace('index.html'); return; }
             
-            const user = JSON.parse(session);
-            if (user.tipo_conta !== 'prestador') { window.location.replace('dashboard.html'); return; }
+            currentUser = JSON.parse(session);
+            
+            // Define o texto do badge indicando qual visão o usuário está visualizando
+            document.getElementById('role-badge').innerText = currentUser.tipo_conta === 'prestador' ? 'Visão: Prestador' : 'Visão: Cliente';
 
-            carregarAgenda(user.id);
+            carregarAgendaGeral();
         };
 
-        async function carregarAgenda(prestadorId) {
+        async function carregarAgendaGeral() {
             const lista = document.getElementById('agenda-lista');
             try {
-                const res = await fetch(`${API_URL}/agendamentos/prestador/${prestadorId}`);
-                if (!res.ok) throw new Error("Erro na API");
+                // A rota agora puxa a lista correta dependendo de qual conta está logada
+                const url = `${API_URL}/agendamentos/${currentUser.tipo_conta}/${currentUser.id}`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error("Erro de resposta da API");
                 
                 const agendamentos = await res.json();
 
                 if (!agendamentos || agendamentos.length === 0) {
                     lista.innerHTML = `
-                        <div class="glass p-12 rounded-2xl text-center border border-gray-800">
-                            <i data-lucide="calendar-x" class="w-16 h-16 text-gray-700 mx-auto mb-4"></i>
-                            <p class="text-gray-400">Nenhum agendamento encontrado.</p>
+                        <div class="bg-[#161626] p-12 rounded-2xl text-center border border-gray-800">
+                            <i data-lucide="calendar-x" class="w-12 h-12 text-gray-600 mx-auto mb-4"></i>
+                            <p class="text-gray-400 font-medium">Nenhum registro de serviço encontrado.</p>
                         </div>
                     `;
                     lucide.createIcons();
@@ -71,72 +90,126 @@
                     const dataObj = new Date(ag.data_hora);
                     const dataFormatada = dataObj.toLocaleDateString('pt-BR') + ' às ' + dataObj.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
                     
-                    const nomeCliente = ag.cliente ? ag.cliente.nome : 'Cliente Desconhecido';
-                    const telefoneCliente = ag.cliente ? ag.cliente.telefone : '';
+                    // Exibe o nome cruzado: Se sou prestador, vejo o cliente. Se sou cliente, vejo quem vai prestar o serviço.
+                    const nomeCorrespondente = currentUser.tipo_conta === 'prestador' 
+                        ? (ag.cliente ? ag.cliente.nome : 'Cliente Desconhecido')
+                        : (ag.prestador ? ag.prestador.nome : 'Profissional');
+                        
+                    const telefoneCorrespondente = currentUser.tipo_conta === 'prestador'
+                        ? (ag.cliente ? ag.cliente.telefone : '')
+                        : (ag.prestador ? ag.prestador.telefone : '');
+
                     const status = (ag.status || 'pendente').toLowerCase();
+                    const valorOrcamento = ag.valor_orcamento || 0;
 
-                    // --- LÓGICA DE BOTÕES E CORES ---
-                    let statusConfig = { cor: 'bg-gray-800 text-gray-400', botao: '' };
+                    let statusCor = 'bg-gray-800 text-gray-300 border-gray-700';
+                    let blocoAcoes = '';
 
-                    if (status === 'pendente') {
-                        statusConfig.cor = 'bg-yellow-900/30 text-yellow-500 border-yellow-700/50';
-                        statusConfig.botao = `<button onclick="mudarStatus('${ag.id}', 'aceito')" class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-xl text-sm font-bold transition-all">Aceitar Pedido</button>`;
-                    } else if (status === 'aceito') {
-                        statusConfig.cor = 'bg-blue-900/30 text-blue-400 border-blue-700/50';
-                        statusConfig.botao = `<button onclick="mudarStatus('${ag.id}', 'concluido')" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-xl text-sm font-bold transition-all">Finalizar Serviço</button>`;
+                    // --- MÁQUINA DE ESTADOS BASEADA NO USUÁRIO LOGADO ---
+                    if (currentUser.tipo_conta === 'prestador') {
+                        if (status === 'pendente') {
+                            statusCor = 'bg-amber-950/40 text-amber-400 border-amber-800/50';
+                            blocoAcoes = `
+                                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
+                                    <input type="number" id="input-preco-${ag.id}" placeholder="R$ Preço" class="bg-[#050508] border border-gray-700 rounded-xl px-3 py-2 text-sm text-white w-full sm:w-28 focus:border-purple-500 outline-none">
+                                    <button onclick="enviarOrcamento('${ag.id}')" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0">Enviar Preço</button>
+                                </div>
+                            `;
+                        } else if (status === 'orcado') {
+                            statusCor = 'bg-indigo-950/40 text-indigo-400 border-indigo-800/50';
+                            blocoAcoes = `<span class="text-xs text-gray-400 italic">Aguardando aprovação do cliente</span>`;
+                        } else if (status === 'aceito') {
+                            statusCor = 'bg-blue-950/40 text-blue-400 border-blue-800/50';
+                            blocoAcoes = `<button onclick="mudarStatus('${ag.id}', 'concluido')" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all w-full md:w-auto">Finalizar Trabalho</button>`;
+                        } else if (status === 'recusado') {
+                            statusCor = 'bg-red-950/40 text-red-400 border-red-900/50';
+                            blocoAcoes = `<span class="text-xs text-gray-500 line-through">Recusado pelo cliente</span>`;
+                        } else {
+                            statusCor = 'bg-emerald-950/40 text-emerald-400 border-emerald-800/50';
+                            blocoAcoes = `<span class="text-xs text-emerald-500 font-semibold flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Finalizado</span>`;
+                        }
                     } else {
-                        statusConfig.cor = 'bg-green-900/30 text-green-500 border-green-700/50';
-                        statusConfig.botao = `<span class="text-xs text-gray-500 italic">Concluído</span>`;
+                        // VISÃO DO CLIENTE
+                        if (status === 'pendente') {
+                            statusCor = 'bg-amber-950/40 text-amber-400 border-amber-800/50';
+                            blocoAcoes = `<span class="text-xs text-gray-400 italic">Aguardando preço do profissional</span>`;
+                        } else if (status === 'orcado') {
+                            statusCor = 'bg-indigo-950/40 text-indigo-400 border-indigo-800/50';
+                            blocoAcoes = `
+                                <div class="flex gap-2 w-full md:w-auto">
+                                    <button onclick="mudarStatus('${ag.id}', 'recusado')" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-red-400 px-4 py-2 rounded-xl text-xs font-bold transition-all">Recusar</button>
+                                    <button onclick="mudarStatus('${ag.id}', 'aceito')" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all">Aprovar e Agendar</button>
+                                </div>
+                            `;
+                        } else if (status === 'aceito') {
+                            statusCor = 'bg-blue-950/40 text-blue-400 border-blue-800/50';
+                            blocoAcoes = `<span class="text-xs text-blue-400 italic font-medium">Serviço agendado e em andamento</span>`;
+                        } else if (status === 'recusado') {
+                            statusCor = 'bg-red-950/40 text-red-400 border-red-900/50';
+                            blocoAcoes = `<span class="text-xs text-gray-500">Você recusou este orçamento</span>`;
+                        } else {
+                            statusCor = 'bg-emerald-950/40 text-emerald-400 border-emerald-800/50';
+                            blocoAcoes = `<span class="text-xs text-gray-400 font-medium">Serviço concluído!</span>`;
+                        }
                     }
 
-                    // FIX: (telefoneCliente || '') evita erro se o campo for NULL no banco
-                    const foneLimpo = (telefoneCliente || '').replace(/\D/g, '');
+                    const foneLimpo = (telefoneCorrespondente || '').replace(/\D/g, '');
                     const linkZap = foneLimpo ? `https://wa.me/55${foneLimpo}` : '#';
 
                     lista.innerHTML += `
-                        <div class="glass p-6 rounded-2xl border border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-[10px] px-2 py-0.5 rounded border font-bold uppercase ${statusConfig.cor}">${status}</span>
+                        <div class="bg-[#161626] p-6 rounded-2xl border border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-lg">
+                            <div class="flex-1 w-full">
+                                <div class="flex flex-wrap items-center gap-2 mb-3">
+                                    <span class="text-[10px] px-2.5 py-1 rounded-full border font-black uppercase tracking-wider ${statusCor}">${status}</span>
                                     <span class="text-gray-500 text-xs">${dataFormatada}</span>
+                                    ${valorOrcamento > 0 ? `<span class="bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 font-extrabold text-xs px-2.5 py-0.5 rounded-lg">R$ ${valorOrcamento.toFixed(2)}</span>` : ''}
                                 </div>
-                                <h3 class="font-bold text-xl">${nomeCliente}</h3>
-                                <p class="text-gray-400 text-sm italic mt-1">"${ag.descricao_servico}"</p>
+                                <h3 class="font-bold text-xl text-white">${nomeCorrespondente}</h3>
+                                <p class="text-gray-400 text-sm mt-1.5 leading-relaxed bg-[#0a0a14] p-3 rounded-xl border border-gray-800/60">"${ag.descricao_servico}"</p>
                             </div>
                             
-                            <div class="flex items-center gap-3 w-full md:w-auto">
+                            <div class="flex items-center gap-3 w-full md:w-auto justify-end border-t border-gray-800 md:border-0 pt-4 md:pt-0">
                                 ${foneLimpo ? `
-                                    <a href="${linkZap}" target="_blank" class="bg-gray-800 p-3 rounded-xl hover:bg-gray-700 transition-colors">
-                                        <i data-lucide="message-circle" class="w-5 h-5 text-green-500"></i>
+                                    <a href="${linkZap}" target="_blank" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 p-3 rounded-xl transition-colors shrink-0 flex items-center justify-center">
+                                        <i data-lucide="message-circle" class="w-5 h-5 text-green-400"></i>
                                     </a>
                                 ` : ''}
-                                ${statusConfig.botao}
+                                ${blocoAcoes}
                             </div>
                         </div>
                     `;
                 });
                 lucide.createIcons();
             } catch (err) {
-                console.error("Erro na Agenda:", err);
-                lista.innerHTML = `<div class="text-red-500 text-center py-8">Erro ao processar dados. Tente novamente.</div>`;
+                console.error(err);
+                lista.innerHTML = `<div class="text-red-400 text-center py-8 font-medium">Falha técnica ao tentar sincronizar o painel de serviços.</div>`;
+            }
+        }
+
+        async function enviarOrcamento(id) {
+            const inputVal = document.getElementById(`input-preco-${id}`).value;
+            if(!inputVal || inputVal <= 0) { alert("Insira um preço válido para o orçamento."); return; }
+
+            try {
+                const res = await fetch(`${API_URL}/agendamentos/${id}/status?novo_status=orcado&valor_orcamento=${inputVal}`, {
+                    method: 'PATCH'
+                });
+                if (res.ok) carregarAgendaGeral();
+            } catch (err) {
+                alert("Falha ao salvar orçamento.");
             }
         }
 
         async function mudarStatus(id, novoStatus) {
-            const msg = novoStatus === 'aceito' ? "Aceitar este pedido?" : "Concluir este serviço?";
-            if(!confirm(msg)) return;
+            if(!confirm(`Confirma a mudança desse serviço para o status: ${novoStatus.toUpperCase()}?`)) return;
 
             try {
                 const res = await fetch(`${API_URL}/agendamentos/${id}/status?novo_status=${novoStatus}`, {
                     method: 'PATCH'
                 });
-
-                if (res.ok) {
-                    const user = JSON.parse(localStorage.getItem('conectasul_session'));
-                    carregarAgenda(user.id);
-                }
+                if (res.ok) carregarAgendaGeral();
             } catch (err) {
-                alert("Erro ao atualizar status.");
+                alert("Falha ao sincronizar alteração.");
             }
         }
     </script>
