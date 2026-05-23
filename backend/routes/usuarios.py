@@ -217,10 +217,18 @@ def banir_usuario(usuario_id: str, admin_id: str):
 @router.post("/perfil/{usuario_id}/upload-foto")
 async def upload_foto_perfil(usuario_id: str, arquivo: UploadFile = File(...)):
     try:
+        # Debug: Verificar se o arquivo chegou
+        print(f"Recebendo arquivo: {arquivo.filename}, tamanho: {arquivo.size}")
+        
         conteudo_arquivo = await arquivo.read()
+        if not conteudo_arquivo:
+            raise HTTPException(status_code=400, detail="Arquivo vazio")
+
         extensao = arquivo.filename.split(".")[-1]
         nome_arquivo = f"perfil_{usuario_id}.{extensao}"
         
+        # Tente usar o caminho relativo dentro do bucket
+        # Certifique-se de que o nome do bucket "foto_url" está correto no seu Supabase
         supabase.storage.from_("foto_url").upload(
             path=nome_arquivo,
             file=conteudo_arquivo,
@@ -230,8 +238,8 @@ async def upload_foto_perfil(usuario_id: str, arquivo: UploadFile = File(...)):
         url_publica = supabase.storage.from_("foto_url").get_public_url(nome_arquivo)
         supabase.table("usuarios").update({"foto": url_publica}).eq("id", usuario_id).execute()
         
-        # CORREÇÃO CRUCIAL: Alterado de "foto_url" para "foto"
         return {"status": "sucesso", "foto": url_publica}
         
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Erro no upload do arquivo: {str(e)}")
+        print(f"Erro no upload: {str(e)}") # Veja isso nos logs do Render
+        raise HTTPException(status_code=400, detail=f"Erro no upload: {str(e)}")
