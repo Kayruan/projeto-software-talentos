@@ -204,7 +204,8 @@ function renderizarGridCards() {
 // EXPANSÃO DE PERFIL E HISTÓRICO DE DEPOIMENTOS
 // ==========================================
 async function abrirPerfil(email) {
-    const p = globalProviders.find(prov => prov.email === email);
+    // CORREÇÃO: Mudado de globalProviders para todosPrestadores
+    const p = todosPrestadores.find(prov => prov.email === email);
     if (!p) return exibirToast("Profissional não encontrado.");
 
     notaSelecionadaParaAvaliar = 0; // Reseta o seletor interno de estrelas do form
@@ -259,7 +260,6 @@ async function abrirPerfil(email) {
         const foneLimpo = p.telefone ? p.telefone.replace(/\D/g, '') : '';
         const linkZap = `https://wa.me/55${foneLimpo}?text=Olá%20${esc(p.nome)},%20vi%20seu%20perfil%20no%20ConectaSul%20e%20gostaria%20de%20solicitar%20um%20orçamento!`;
 
-        // Geração do painel dinâmico interativo para o cliente escrever depoimento
         html += `
             <div class="mt-8 border-t border-gray-800 pt-6">
                 <h3 class="text-xl font-bold text-white mb-4 font-space">Avaliar Profissional e Enviar Foto</h3>
@@ -313,7 +313,6 @@ async function abrirPerfil(email) {
     abrirModal('perfilModal');
     lucide.createIcons();
     
-    // Dispara em paralelo a busca das avaliações textuais/fotos salvas no banco
     renderizarListaDeAvaliacoesRealizadas(p.id);
 }
 
@@ -332,7 +331,7 @@ function marcarEstrelasNoForm(nota) {
     }
 }
 
-// Busca e desenha a lista de portfólio/feedbacks embaixo do perfil
+// Busca e desenhos a lista de portfólio/feedbacks embaixo do perfil
 async function renderizarListaDeAvaliacoesRealizadas(prestadorId) {
     const box = document.getElementById("lista-depoimentos-container");
     try {
@@ -394,7 +393,7 @@ async function salvarNovaAvaliacaoCompleta(e, prestadorId) {
 
         const res = await fetch(`${API_URL}/avaliar`, {
             method: 'POST',
-            body: formData // Sem headers manuais de Content-Type, o navegador resolve sozinho
+            body: formData
         });
 
         if (res.ok) {
@@ -499,7 +498,8 @@ async function salvarPerfil(e) {
 async function fazerAgendamento(event, prestadorId) {
     event.preventDefault();
     const agendamento = {
-        prestador_id: prestadorId, cliente_id: currentUser.id,
+        prestador_id: prestadorId,
+        cliente_id: currentUser.id,
         data_hora: document.getElementById('agenda-data').value,
         descricao_servico: document.getElementById('agenda-desc').value
     };

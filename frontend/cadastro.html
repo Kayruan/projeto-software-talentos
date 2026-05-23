@@ -1,36 +1,116 @@
-<script>
-    
-    function toggleCamposExtra() {
-        const tipo = document.getElementById('cad-tipo').value;
-        document.getElementById('campos-prestador').classList.toggle('hidden', tipo !== 'prestador');
-    }
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConectaSul - Cadastro</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="flex flex-col min-h-screen bg-[#050508] text-gray-100 font-outfit">
 
-   
-    window.onload = () => {
-        const formCadastro = document.getElementById('cadastro-form');
-        
-        if (formCadastro) {
-            formCadastro.onsubmit = async (e) => {
-                e.preventDefault();
-                
-                // Monta o objeto com os dados do formulário
-                const usuario = {
-                    nome: document.getElementById('cad-nome').value,
-                    email: document.getElementById('cad-email').value,
-                    // Dica: Crie um <input id="cad-senha" type="password"> no seu HTML depois!
-                    senha: "senha_padrao_por_enquanto", 
-                    telefone: document.getElementById('cad-fone').value,
-                    tipo_conta: document.getElementById('cad-tipo').value,
-                    cidade: document.getElementById('cad-cidade').value,
-                    categoria: document.getElementById('cad-categoria').value,
-                    servicos: document.getElementById('cad-servicos').value
-                };
+    <main class="flex-1 flex items-center justify-center p-6 my-8">
+        <div class="bg-[#161626] border border-gray-800 w-full max-w-lg p-8 rounded-2xl shadow-2xl">
+            
+            <div class="text-center mb-8">
+                <div class="bg-purple-600 p-2.5 rounded-xl inline-block shadow-lg mb-3">
+                    <i data-lucide="user-plus" class="text-white w-6 h-6"></i>
+                </div>
+                <h2 class="text-3xl font-bold font-space text-white tracking-tight">Crie sua conta</h2>
+                <p class="text-gray-400 text-sm mt-1">Seja bem-vindo ao ConectaSul.</p>
+            </div>
 
-                // Chama a função do api.js
-                await registrar(usuario);
-            };
-        } else {
-            console.error("Ops! Não achei nenhum <form> com o ID 'cadastro-form' no seu HTML.");
+            <form id="cadastro-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Nome Completo</label>
+                    <input type="text" id="cad-nome" placeholder="Ex: João Silva" class="w-full bg-[#050508] border border-gray-700 rounded-lg p-3 text-white focus:border-purple-500 outline-none transition-colors" required>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">E-mail</label>
+                    <input type="email" id="cad-email" placeholder="joao@exemplo.com" class="w-full bg-[#050508] border border-gray-700 rounded-lg p-3 text-white focus:border-purple-500 outline-none transition-colors" required>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Senha de Acesso</label>
+                    <input type="password" id="cad-senha" placeholder="••••••••" class="w-full bg-[#050508] border border-gray-700 rounded-lg p-3 text-white focus:border-purple-500 outline-none transition-colors" required>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Telefone (WhatsApp)</label>
+                    <input type="tel" id="cad-fone" placeholder="54999999999" class="w-full bg-[#050508] border border-gray-700 rounded-lg p-3 text-white focus:border-purple-500 outline-none transition-colors" required>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Cidade</label>
+                    <input type="text" id="cad-cidade" placeholder="Ex: Espumoso" class="w-full bg-[#050508] border border-gray-700 rounded-lg p-3 text-white focus:border-purple-500 outline-none transition-colors" required>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Tipo de Conta</label>
+                    <select id="cad-tipo" onchange="toggleCamposExtra()" class="w-full bg-[#050508] border border-gray-700 rounded-lg p-3 text-white focus:border-purple-500 outline-none transition-colors">
+                        <option value="cliente">Quero Contratar Serviços (Cliente)</option>
+                        <option value="prestador">Quero Oferecer Serviços (Prestador)</option>
+                    </select>
+                </div>
+
+                <div id="campos-prestador" class="hidden space-y-4 pt-2 border-t border-gray-800">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Sua Categoria / Profissão</label>
+                        <input type="text" id="cad-categoria" placeholder="Ex: Encanador, Pintor, Eletricista" class="w-full bg-[#050508] border border-gray-700 rounded-lg p-3 text-white focus:border-purple-500 outline-none transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Lista de Serviços prestados (separados por vírgula)</label>
+                        <input type="text" id="cad-servicos" placeholder="Ex: Pintura predial, Pintura residencial" class="w-full bg-[#050508] border border-gray-700 rounded-lg p-3 text-white focus:border-purple-500 outline-none transition-colors">
+                    </div>
+                </div>
+
+                <div class="pt-4">
+                    <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-purple-950/50">Finalizar Cadastro</button>
+                </div>
+            </form>
+
+            <div class="text-center mt-6 text-sm text-gray-400">
+                Já tem uma conta? <a href="index.html" class="text-purple-400 hover:text-purple-300 font-semibold underline">Faça Login</a>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script>
+        function toggleCamposExtra() {
+            const tipo = document.getElementById('cad-tipo').value;
+            document.getElementById('campos-prestador').classList.toggle('hidden', tipo !== 'prestador');
         }
-    };
-</script>
+
+        window.onload = () => {
+            lucide.createIcons();
+            const formCadastro = document.getElementById('cadastro-form');
+            
+            if (formCadastro) {
+                formCadastro.onsubmit = async (e) => {
+                    e.preventDefault();
+                    
+                    const usuario = {
+                        nome: document.getElementById('cad-nome').value,
+                        email: document.getElementById('cad-email').value,
+                        senha: document.getElementById('cad-senha').value, // Lendo a senha real digitada
+                        telefone: document.getElementById('cad-fone').value,
+                        tipo_conta: document.getElementById('cad-tipo').value,
+                        cidade: document.getElementById('cad-cidade').value,
+                        categoria: document.getElementById('cad-categoria').value || "",
+                        servicos: document.getElementById('cad-servicos').value || "",
+                        descricao: ""
+                    };
+
+                    await registrar(usuario);
+                };
+            } else {
+                console.error("Ops! Não achei nenhum <form> com o ID 'cadastro-form' no seu HTML.");
+            }
+        };
+    </script>
+</body>
+</html>
