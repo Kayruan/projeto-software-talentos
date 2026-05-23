@@ -217,25 +217,21 @@ def banir_usuario(usuario_id: str, admin_id: str):
 @router.post("/perfil/{usuario_id}/upload-foto")
 async def upload_foto_perfil(usuario_id: str, arquivo: UploadFile = File(...)):
     try:
-        conteudo_arquivo = await arquivo.read()
-        extensao = arquivo.filename.split(".")[-1]
-        nome_arquivo = f"perfil_{usuario_id}.{extensao}"
+        conteudo = await arquivo.read()
+        nome_arquivo = f"perfil_{usuario_id}.png"
         
-        # O nome do bucket deve ser o ID que aparece no seu painel Supabase
-        # Certifique-se de que o nome é exatamente "fotos-conectasul"
+        # Upload
         supabase.storage.from_("fotos-conectasul").upload(
             path=nome_arquivo,
-            file=conteudo_arquivo,
-            file_options={"content-type": arquivo.content_type, "x-upsert": "true"}
+            file=conteudo,
+            file_options={"content-type": "image/png", "x-upsert": "true"}
         )
         
         url_publica = supabase.storage.from_("fotos-conectasul").get_public_url(nome_arquivo)
         
-        # Salva a URL na coluna "foto"
-        supabase.table("usuarios").update({"foto": url_publica}).eq("id", usuario_id).execute()
+        # CORREÇÃO: O banco tem a coluna "foto_url", então devemos atualizar "foto_url"
+        supabase.table("usuarios").update({"foto_url": url_publica}).eq("id", usuario_id).execute()
         
-        return {"status": "sucesso", "foto": url_publica}
-        
+        return {"status": "sucesso", "foto_url": url_publica}
     except Exception as e:
-        print(f"ERRO CRÍTICO NO UPLOAD: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))

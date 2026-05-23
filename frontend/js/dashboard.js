@@ -488,9 +488,10 @@ async function salvarPerfil(e) {
                 body: formData
             });
 
-            if (!resFoto.ok) {
-                const errData = await resFoto.json();
-                throw new Error(errData.detail || "Falha no upload da imagem");
+            if (resFoto.ok) {
+                let dataFoto = await resFoto.json();
+                 // A chave correta é foto_url
+                urlFotoFinal = dataFoto.foto_url; 
             }
 
             const dataFoto = await resFoto.json();
