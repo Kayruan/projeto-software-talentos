@@ -391,38 +391,51 @@ async function renderizarListaDeAvaliacoesRealizadas(prestadorId) {
 
 async function salvarNovaAvaliacaoCompleta(e, prestadorId) {
     e.preventDefault();
-    if (notaSelecionadaParaAvaliar === 0) { alert("Por favor, selecione ao menos 1 estrela de nota."); return; }
+    
+    // Validação básica
+    if (notaSelecionadaParaAvaliar === 0) { 
+        alert("Por favor, selecione ao menos 1 estrela de nota."); 
+        return; 
+    }
 
     const comentarioTxt = document.getElementById("av-comentario-input").value;
     const inputFoto = document.getElementById("av-foto-file");
 
     try {
         exibirToast("Processando avaliação...");
+        
         const formData = new FormData();
         formData.append("prestador_id", prestadorId);
         formData.append("cliente_id", currentUser.id);
         formData.append("nota", notaSelecionadaParaAvaliar);
         formData.append("comentario", comentarioTxt);
 
+        // Adiciona a foto apenas se ela existir
         if (inputFoto && inputFoto.files.length > 0) {
             formData.append("arquivo", inputFoto.files[0]);
         }
 
+        // IMPORTANTE: Não defina headers. O navegador detecta o FormData 
+        // e define o Content-Type com o 'boundary' correto automaticamente.
         const res = await fetch(`${API_URL}/avaliar`, {
             method: 'POST',
             body: formData
         });
 
+        // Captura o JSON de resposta para verificar o sucesso
+        const data = await res.json();
+
         if (res.ok) {
-            exibirToast("Avaliação e foto postadas com sucesso!");
+            exibirToast("Avaliação postada com sucesso!");
             carregarPrestadores(); 
             fecharModais();
         } else {
-            alert("Erro ao salvar avaliação.");
+            // Se o servidor retornar erro (ex: 400 ou 500), lançamos para o catch
+            throw new Error(data.detail || "Erro ao salvar avaliação.");
         }
     } catch (err) {
-        console.error(err);
-        exibirToast("Erro de conexão.");
+        console.error("Erro na avaliação:", err);
+        exibirToast("Erro: " + err.message);
     }
 }
 

@@ -121,38 +121,37 @@ async def avaliar_prestador(
     cliente_id: str = Form(...),
     nota: int = Form(...),
     comentario: Optional[str] = Form(""),
-    arquivo: Optional[UploadFile] = File(None) # A foto do serviço agora é opcional
+    arquivo: Optional[UploadFile] = File(None)
 ):
     try:
-        foto_url = ""
+        # ALTERAÇÃO: Inicialize como None para que o banco receba NULL
+        foto_url = None 
 
-        # 1. Se o cliente anexou uma foto do serviço realizado, faz o upload para o Storage
         if arquivo:
             conteudo_foto = await arquivo.read()
             extensao = arquivo.filename.split(".")[-1]
-            # Cria um nome único baseado no carimbo de tempo/ids para não sobrescrever
-            nome_arquivo = f"av_{prestador_id}_{cliente_id}.{extensao}"
+            # Adicione um timestamp para garantir nomes únicos e evitar sobrescrita
+            import time
+            nome_arquivo = f"av_{prestador_id}_{cliente_id}_{int(time.time())}.{extensao}"
             
-            # Envia o arquivo para a mesma pasta 'fotos-conectasul' que criamos
             supabase.storage.from_("fotos-conectasul").upload(
                 path=nome_arquivo,
                 file=conteudo_foto,
                 file_options={"content-type": arquivo.content_type, "x-upsert": "true"}
             )
-            # Pega o link público da foto gerada
             foto_url = supabase.storage.from_("fotos-conectasul").get_public_url(nome_arquivo)
 
-        # 2. Monta o dicionário para salvar na tabela 'avaliacoes'
         dados_avaliacao = {
             "prestador_id": prestador_id,
             "cliente_id": cliente_id,
             "nota": nota,
             "comentario": comentario,
-            "foto_url": foto_url
+            "foto_url": foto_url # Se for None, o Supabase gravará NULL
         }
         
-        # Insere a avaliação completa no banco de dados
         supabase.table("avaliacoes").insert(dados_avaliacao).execute()
+        
+        # ... resto do código (cálculo da média e update do prestador) ...
         
         # 3. Recalcula a média de estrelas em tempo real do prestador
         todas_av = supabase.table("avaliacoes").select("nota").eq("prestador_id", prestador_id).execute()
