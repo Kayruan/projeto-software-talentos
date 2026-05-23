@@ -221,14 +221,21 @@ async def upload_foto_perfil(usuario_id: str, arquivo: UploadFile = File(...)):
         extensao = arquivo.filename.split(".")[-1]
         nome_arquivo = f"perfil_{usuario_id}.{extensao}"
         
-        supabase.storage.from_("fotos-conectasul").upload(
+        # 1. ENVIAR PARA O BALDE CORRETO: 
+        # Mudamos de "fotos-conectasul" para "foto_url" (o nome do balde do seu print)
+        supabase.storage.from_("foto_url").upload(
             path=nome_arquivo,
             file=conteudo_arquivo,
             file_options={"content-type": arquivo.content_type, "x-upsert": "true"}
         )
         
-        url_publica = supabase.storage.from_("fotos-conectasul").get_public_url(nome_arquivo)
-        supabase.table("usuarios").update({"foto_url": url_publica}).eq("id", usuario_id).execute()
+        # 2. PEGA O LINK PÚBLICO:
+        # Puxa o link gerado de dentro do balde "foto_url"
+        url_publica = supabase.storage.from_("foto_url").get_public_url(nome_arquivo)
+        
+        # 3. SALVA NA COLUNA CORRETA DA TABELA:
+        # Mudamos de "foto_url" para "foto" (o nome da coluna que está no seu banco)
+        supabase.table("usuarios").update({"foto": url_publica}).eq("id", usuario_id).execute()
         
         return {"status": "sucesso", "foto_url": url_publica}
         
