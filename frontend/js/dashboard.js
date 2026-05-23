@@ -180,9 +180,9 @@ function renderizarGridCards() {
         const notaMedia = p.media_nota || 0;
         const totalAv = p.total_avaliacoes || 0;
         
-        // Busca da propriedade 'foto' sincronizada e com tratamento anti-cache
-        const avatarUrl = (p.foto && p.foto.trim() !== "") 
-            ? `${p.foto}?t=${new Date().getTime()}` 
+        // AJUSTE: Alterado de p.foto para p.foto_url
+        const avatarUrl = (p.foto_url && p.foto_url.trim() !== "") 
+            ? `${p.foto_url}?t=${new Date().getTime()}` 
             : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
             
         const btnAdmin = (currentUser && currentUser.is_admin && currentUser.id !== p.id) 
