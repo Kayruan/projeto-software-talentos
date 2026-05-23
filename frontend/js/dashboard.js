@@ -473,31 +473,32 @@ async function salvarPerfil(e) {
     exibirToast("Processando atualizações...");
 
     try {
-        // 1. PASSO EXCLUSIVO DA FOTO (STORAGE)
         let urlFotoFinal = currentUser.foto || "";
         const inputFoto = document.getElementById('edit-foto-file');
         
+        // 1. Upload da Foto
         if (inputFoto && inputFoto.files.length > 0) {
-            exibirToast("Enviando imagem para o banco...");
+            exibirToast("Enviando imagem...");
             const formData = new FormData();
             formData.append("arquivo", inputFoto.files[0]);
 
-            let resFoto = await fetch(`${API_URL}/perfil/${currentUser.id}/upload-foto`, {
+            // Chamada direta para o endpoint de upload
+            const resFoto = await fetch(`${API_URL}/perfil/${currentUser.id}/upload-foto`, {
                 method: 'POST',
                 body: formData
             });
 
-            if (resFoto.ok) {
-                let dataFoto = await resFoto.json();
-                // O backend agora retorna 'foto' (conforme ajustamos na rota)
-                urlFotoFinal = dataFoto.foto || urlFotoFinal; 
-                exibirToast("Imagem salva com sucesso!");
-            } else {
-                console.error("Falha ao processar arquivo no bucket.");
+            if (!resFoto.ok) {
+                const errData = await resFoto.json();
+                throw new Error(errData.detail || "Falha no upload da imagem");
             }
+
+            const dataFoto = await resFoto.json();
+            urlFotoFinal = dataFoto.foto || urlFotoFinal;
+            exibirToast("Imagem salva!");
         }
 
-        // 2. PASSO DOS DADOS TEXTUAIS (PUT)
+        // 2. Atualização dos Textos
         const dadosTexto = {
             categoria: document.getElementById('edit-cat').value,
             cidade: document.getElementById('edit-cid').value,
@@ -505,33 +506,30 @@ async function salvarPerfil(e) {
             descricao: document.getElementById('edit-desc').value
         };
 
-        let resTexto = await fetch(`${API_URL}/perfil/${currentUser.id}`, {
+        const resTexto = await fetch(`${API_URL}/perfil/${currentUser.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dadosTexto)
         });
         
-        if (!resTexto.ok) throw new Error("O backend rejeitou a atualização dos dados textuais.");
+        if (!resTexto.ok) throw new Error("Erro ao salvar textos");
         
-        let dataTexto = await resTexto.json();
+        const dataTexto = await resTexto.json();
         
-        // 3. ATUALIZAÇÃO DA SESSÃO E PERSISTÊNCIA DA FOTO
+        // 3. Sincronização
         currentUser = dataTexto.user;
-        
-        // Garante que o objeto currentUser tenha a foto correta, 
-        // mesmo que o PUT de texto não tenha retornado o campo 'foto'
-        currentUser.foto = urlFotoFinal; 
+        currentUser.foto = urlFotoFinal; // Garante que a URL mais recente seja aplicada
         
         localStorage.setItem('conectasul_session', JSON.stringify(currentUser));
         
-        exibirToast("Perfil atualizado com sucesso!");
+        exibirToast("Perfil atualizado!");
         configurarMenuSuperior(); 
         await carregarPrestadores(); 
         fecharModais(); 
         
     } catch(err) { 
         console.error("Erro na sincronização:", err);
-        exibirToast("Erro ao sincronizar dados com o banco."); 
+        exibirToast("Erro: " + err.message); 
     }
 }
 

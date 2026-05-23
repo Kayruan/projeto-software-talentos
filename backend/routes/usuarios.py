@@ -217,29 +217,25 @@ def banir_usuario(usuario_id: str, admin_id: str):
 @router.post("/perfil/{usuario_id}/upload-foto")
 async def upload_foto_perfil(usuario_id: str, arquivo: UploadFile = File(...)):
     try:
-        # Debug: Verificar se o arquivo chegou
-        print(f"Recebendo arquivo: {arquivo.filename}, tamanho: {arquivo.size}")
-        
         conteudo_arquivo = await arquivo.read()
-        if not conteudo_arquivo:
-            raise HTTPException(status_code=400, detail="Arquivo vazio")
-
         extensao = arquivo.filename.split(".")[-1]
         nome_arquivo = f"perfil_{usuario_id}.{extensao}"
         
-        # Tente usar o caminho relativo dentro do bucket
-        # Certifique-se de que o nome do bucket "foto_url" está correto no seu Supabase
-        supabase.storage.from_("foto_url").upload(
+        # O nome do bucket deve ser o ID que aparece no seu painel Supabase
+        # Certifique-se de que o nome é exatamente "fotos-conectasul"
+        supabase.storage.from_("fotos-conectasul").upload(
             path=nome_arquivo,
             file=conteudo_arquivo,
             file_options={"content-type": arquivo.content_type, "x-upsert": "true"}
         )
         
-        url_publica = supabase.storage.from_("foto_url").get_public_url(nome_arquivo)
+        url_publica = supabase.storage.from_("fotos-conectasul").get_public_url(nome_arquivo)
+        
+        # Salva a URL na coluna "foto"
         supabase.table("usuarios").update({"foto": url_publica}).eq("id", usuario_id).execute()
         
         return {"status": "sucesso", "foto": url_publica}
         
     except Exception as e:
-        print(f"Erro no upload: {str(e)}") # Veja isso nos logs do Render
-        raise HTTPException(status_code=400, detail=f"Erro no upload: {str(e)}")
+        print(f"ERRO CRÍTICO NO UPLOAD: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
