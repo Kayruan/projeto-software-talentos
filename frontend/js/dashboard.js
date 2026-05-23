@@ -473,7 +473,7 @@ async function salvarPerfil(e) {
     exibirToast("Processando atualizações...");
 
     try {
-        // Sincroniza usando a chave 'foto'
+        // 1. PASSO EXCLUSIVO DA FOTO (STORAGE)
         let urlFotoFinal = currentUser.foto || "";
         const inputFoto = document.getElementById('edit-foto-file');
         
@@ -489,14 +489,15 @@ async function salvarPerfil(e) {
 
             if (resFoto.ok) {
                 let dataFoto = await resFoto.json();
-                // Suporta chaves legadas e novas vindas da API de forma tolerante
-                urlFotoFinal = dataFoto.foto || dataFoto.foto_url || urlFotoFinal; 
+                // O backend agora retorna 'foto' (conforme ajustamos na rota)
+                urlFotoFinal = dataFoto.foto || urlFotoFinal; 
                 exibirToast("Imagem salva com sucesso!");
             } else {
                 console.error("Falha ao processar arquivo no bucket.");
             }
         }
 
+        // 2. PASSO DOS DADOS TEXTUAIS (PUT)
         const dadosTexto = {
             categoria: document.getElementById('edit-cat').value,
             cidade: document.getElementById('edit-cid').value,
@@ -514,15 +515,16 @@ async function salvarPerfil(e) {
         
         let dataTexto = await resTexto.json();
         
-        // Puxa o objeto e garante que a sessão armazene 'foto' de forma persistente
+        // 3. ATUALIZAÇÃO DA SESSÃO E PERSISTÊNCIA DA FOTO
         currentUser = dataTexto.user;
-        if (!currentUser.foto || currentUser.foto.trim() === "") {
-            currentUser.foto = urlFotoFinal; 
-        }
+        
+        // Garante que o objeto currentUser tenha a foto correta, 
+        // mesmo que o PUT de texto não tenha retornado o campo 'foto'
+        currentUser.foto = urlFotoFinal; 
         
         localStorage.setItem('conectasul_session', JSON.stringify(currentUser));
         
-        exibirToast("Perfil updated com sucesso!");
+        exibirToast("Perfil atualizado com sucesso!");
         configurarMenuSuperior(); 
         await carregarPrestadores(); 
         fecharModais(); 
