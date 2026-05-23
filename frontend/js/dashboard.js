@@ -61,9 +61,9 @@ function configurarMenuSuperior() {
     if (currentUser && authSection) {
         const badgeAdmin = currentUser.is_admin ? '<span class="text-[10px] font-black tracking-wider bg-red-600 text-white px-2 py-0.5 rounded ml-2 shadow">ADMIN</span>' : '';
         
-        // Anti-cache para a foto do menu superior mapeado para a coluna 'foto'
-        const avatarUrl = (currentUser.foto && currentUser.foto.trim() !== "") 
-            ? `${currentUser.foto}?t=${new Date().getTime()}`
+        // CORRIGIDO: Agora usa foto_url
+        const avatarUrl = (currentUser.foto_url && currentUser.foto_url.trim() !== "") 
+            ? `${currentUser.foto_url}?t=${new Date().getTime()}`
             : `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
 
         authSection.innerHTML = `
@@ -85,16 +85,15 @@ async function carregarPrestadores() {
         
         todosPrestadores = await res.json();
         
-        // Sincroniza dinamicamente a propriedade 'foto' na lista global
+        // Sincroniza dinamicamente a propriedade 'foto_url'
         if(currentUser) {
             const indexMudar = todosPrestadores.findIndex(p => p.id === currentUser.id);
             if(indexMudar !== -1) {
-                todosPrestadores[indexMudar].foto = currentUser.foto;
+                todosPrestadores[indexMudar].foto_url = currentUser.foto_url;
             }
         }
 
         prestadoresFiltrados = [...todosPrestadores];
-        
         gerarOpcoesDosFiltros();
         atualizarMetricasDoPainel();
         aplicarFiltros();
@@ -102,6 +101,8 @@ async function carregarPrestadores() {
         exibirToast("Erro ao conectar com o servidor.");
     }
 }
+
+// ... (renderizarGridCards já está correto conforme ajuste anterior)
 
 function atualizarMetricasDoPainel() {
     document.getElementById("stat-providers").innerText = todosPrestadores.length;
@@ -231,9 +232,9 @@ async function abrirPerfil(email) {
     notaSelecionadaParaAvaliar = 0; 
     const content = document.getElementById('perfil-content');
     
-    // Renderização interna do modal com base na propriedade 'foto'
-    const avatarUrl = (p.foto && p.foto.trim() !== "") 
-        ? `${p.foto}?t=${new Date().getTime()}` 
+    // ATUALIZADO: Usando p.foto_url para buscar a imagem correta no Storage
+    const avatarUrl = (p.foto_url && p.foto_url.trim() !== "") 
+        ? `${p.foto_url}?t=${new Date().getTime()}` 
         : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
         
     const servicos = p.servicos ? p.servicos.split(',') : ['Serviços Gerais'];
@@ -289,28 +290,23 @@ async function abrirPerfil(email) {
             <div class="mt-8 border-t border-gray-800 pt-6">
                 <h3 class="text-xl font-bold text-white mb-4 font-space">Avaliar Profissional e Enviar Foto</h3>
                 <form onsubmit="salvarNovaAvaliacaoCompleta(event, '${p.id}')" class="bg-[#050508] p-5 rounded-xl border border-gray-800 space-y-4">
-                    
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Clique para selecionar a Nota</label>
                         <div class="flex gap-2 bg-black/40 p-3 rounded-xl border border-gray-800/80 justify-center">
                             ${[1,2,3,4,5].map(n => `<i data-lucide="star" id="estrela-form-${n}" onclick="marcarEstrelasNoForm(${n})" class="w-7 h-7 text-gray-600 cursor-pointer hover:text-amber-400 transition-all"></i>`).join('')}
                         </div>
                     </div>
-
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Seu Comentário / Feedback</label>
                         <textarea id="av-comentario-input" placeholder="Conte como foi a sua experiência com o serviço prestado..." class="w-full bg-black/50 border border-gray-700 rounded-lg p-2.5 text-white h-20 text-sm focus:border-purple-500 outline-none" required></textarea>
                     </div>
-
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Foto do Serviço Finalizado (Opcional)</label>
                         <input type="file" id="av-foto-file" accept="image/*" class="w-full text-xs text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-purple-600/20 file:text-purple-300 hover:file:bg-purple-600/30 cursor-pointer">
                     </div>
-
                     <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-xl text-sm font-bold transition-all shadow-md">Publicar Avaliação</button>
                 </form>
             </div>
-
             <div class="mt-8 border-t border-gray-800 pt-6">
                 <h3 class="text-xl font-bold text-white mb-4 font-space">Solicitar Orçamento de Serviço</h3>
                 <form onsubmit="fazerAgendamento(event, '${p.id}')" class="bg-[#050508] p-5 rounded-xl border border-gray-800 space-y-4">
@@ -325,7 +321,6 @@ async function abrirPerfil(email) {
                     <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-purple-950/40">Enviar Pedido para Central</button>
                 </form>
             </div>
-
             <div class="mt-6">
                 <a href="${linkZap}" target="_blank" class="w-full bg-green-600 hover:bg-green-700 text-white py-3.5 rounded-xl font-bold text-base flex justify-center items-center gap-2 transition-all shadow-lg shadow-green-950/30">
                     <i data-lucide="message-circle"></i> Conversar direto no WhatsApp
