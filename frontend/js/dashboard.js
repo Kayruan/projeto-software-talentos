@@ -61,7 +61,7 @@ function configurarMenuSuperior() {
     if (currentUser && authSection) {
         const badgeAdmin = currentUser.is_admin ? '<span class="text-[10px] font-black tracking-wider bg-red-600 text-white px-2 py-0.5 rounded ml-2 shadow">ADMIN</span>' : '';
         
-        // AJUSTE: Mapeado para ler 'foto' e injetar anti-cachetemporal
+        // Anti-cache para a foto do menu superior mapeado para a coluna 'foto'
         const avatarUrl = (currentUser.foto && currentUser.foto.trim() !== "") 
             ? `${currentUser.foto}?t=${new Date().getTime()}`
             : `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
@@ -85,7 +85,7 @@ async function carregarPrestadores() {
         
         todosPrestadores = await res.json();
         
-        // AJUSTE: Sincroniza dinamicamente a propriedade 'foto' na lista global
+        // Sincroniza dinamicamente a propriedade 'foto' na lista global
         if(currentUser) {
             const indexMudar = todosPrestadores.findIndex(p => p.id === currentUser.id);
             if(indexMudar !== -1) {
@@ -180,7 +180,7 @@ function renderizarGridCards() {
         const notaMedia = p.media_nota || 0;
         const totalAv = p.total_avaliacoes || 0;
         
-        // AJUSTE: Busca da propriedade 'foto' sincronizada e com tratamento anti-cache
+        // Busca da propriedade 'foto' sincronizada e com tratamento anti-cache
         const avatarUrl = (p.foto && p.foto.trim() !== "") 
             ? `${p.foto}?t=${new Date().getTime()}` 
             : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
@@ -231,7 +231,7 @@ async function abrirPerfil(email) {
     notaSelecionadaParaAvaliar = 0; 
     const content = document.getElementById('perfil-content');
     
-    // AJUSTE: Renderização interna do modal com base na propriedade 'foto'
+    // Renderização interna do modal com base na propriedade 'foto'
     const avatarUrl = (p.foto && p.foto.trim() !== "") 
         ? `${p.foto}?t=${new Date().getTime()}` 
         : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
@@ -473,7 +473,7 @@ async function salvarPerfil(e) {
     exibirToast("Processando atualizações...");
 
     try {
-        // AJUSTE: Sincroniza usando a chave 'foto'
+        // Sincroniza usando a chave 'foto'
         let urlFotoFinal = currentUser.foto || "";
         const inputFoto = document.getElementById('edit-foto-file');
         
@@ -489,7 +489,8 @@ async function salvarPerfil(e) {
 
             if (resFoto.ok) {
                 let dataFoto = await resFoto.json();
-                urlFotoFinal = dataFoto.foto_url; 
+                // Suporta chaves legadas e novas vindas da API de forma tolerante
+                urlFotoFinal = dataFoto.foto || dataFoto.foto_url || urlFotoFinal; 
                 exibirToast("Imagem salva com sucesso!");
             } else {
                 console.error("Falha ao processar arquivo no bucket.");
@@ -513,7 +514,7 @@ async function salvarPerfil(e) {
         
         let dataTexto = await resTexto.json();
         
-        // AJUSTE: Puxa o objeto e garante que a sessão armazene 'foto' de forma persistente
+        // Puxa o objeto e garante que a sessão armazene 'foto' de forma persistente
         currentUser = dataTexto.user;
         if (!currentUser.foto || currentUser.foto.trim() === "") {
             currentUser.foto = urlFotoFinal; 
@@ -521,7 +522,7 @@ async function salvarPerfil(e) {
         
         localStorage.setItem('conectasul_session', JSON.stringify(currentUser));
         
-        exibirToast("Perfil atualizado com sucesso!");
+        exibirToast("Perfil updated com sucesso!");
         configurarMenuSuperior(); 
         await carregarPrestadores(); 
         fecharModais(); 
