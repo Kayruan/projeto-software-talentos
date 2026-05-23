@@ -473,15 +473,18 @@ async function salvarPerfil(e) {
     exibirToast("Processando atualizações...");
 
     try {
-        // 1. PRIMEIRO PASSO: Realiza o upload da foto se houver arquivo selecionado
         let urlFotoFinal = currentUser.foto_url || "";
         const inputFoto = document.getElementById('edit-foto-file');
         
+        // ==========================================
+        // 1. PASSO EXCLUSIVO DA FOTO (STORAGE)
+        // ==========================================
         if (inputFoto && inputFoto.files.length > 0) {
-            exibirToast("Enviando imagem para o banco de dados...");
+            exibirToast("Enviando imagem para o banco...");
             const formData = new FormData();
             formData.append("arquivo", inputFoto.files[0]);
 
+            // Dispara para a Rota 6 do seu backend: @router.post("/perfil/{usuario_id}/upload-foto")
             let resFoto = await fetch(`${API_URL}/perfil/${currentUser.id}/upload-foto`, {
                 method: 'POST',
                 body: formData
@@ -489,41 +492,53 @@ async function salvarPerfil(e) {
 
             if (resFoto.ok) {
                 let dataFoto = await resFoto.json();
-                urlFotoFinal = dataFoto.foto_url; // Recebe o link gerado pelo Storage
+                urlFotoFinal = dataFoto.foto_url; // Link gerado e persistido pelo Supabase Storage
+                exibirToast("Imagem salva com sucesso!");
             } else {
-                throw new Error("Falha no upload do arquivo.");
+                console.error("Falha ao processar arquivo no bucket.");
             }
         }
 
-        // 2. SEGUNDO PASSO: Envia os dados de texto acoplando a foto_url vinda do storage
-        const dadosCompletos = {
+        // ==========================================
+        // 2. PASSO DOS DADOS TEXTUAIS (PUT)
+        // ==========================================
+        // Montamos o objeto exatamente como o seu modelo Pydantic 'PerfilUpdate' espera no Python
+        const dadosTexto = {
             categoria: document.getElementById('edit-cat').value,
             cidade: document.getElementById('edit-cid').value,
             servicos: document.getElementById('edit-serv').value,
-            descricao: document.getElementById('edit-desc').value,
-            foto_url: urlFotoFinal // Injeta o link real para salvar de forma persistente no PostgreSQL
+            descricao: document.getElementById('edit-desc').value
         };
 
+        // Dispara para a Rota 2 do seu backend: @router.put("/perfil/{usuario_id}")
         let resTexto = await fetch(`${API_URL}/perfil/${currentUser.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dadosCompletos)
+            body: JSON.stringify(dadosTexto) // Envia sem a propriedade 'foto_url' para não gerar erro 422
         });
         
-        if (!resTexto.ok) throw new Error("Erro ao salvar textos");
+        if (!resTexto.ok) throw new Error("O backend rejeitou a atualização dos dados textuais.");
+        
         let dataTexto = await resTexto.json();
         
-        // 3. TERCEIRO PASSO: Atualiza a sessão e força o redesenho imediato das mídias na tela
+        // ==========================================
+        // 3. ATUALIZAÇÃO DA SESSÃO LOCAL E INTERFACE
+        // ==========================================
+        // Mesclamos o retorno textual do banco com a url da foto atualizada no primeiro passo
         currentUser = dataTexto.user;
+        currentUser.foto_url = urlFotoFinal; 
+        
+        // Salva os dados atualizados na sessão do navegador
         localStorage.setItem('conectasul_session', JSON.stringify(currentUser));
         
         exibirToast("Perfil atualizado com sucesso!");
-        configurarMenuSuperior(); // Atualiza a foto do header
-        await carregarPrestadores(); // Sincroniza a lista global e atualiza o seu card no grid na hora
+        configurarMenuSuperior(); // Atualiza na hora o avatar do topo direito
+        await carregarPrestadores(); // Sincroniza a lista global e atualiza o seu card no grid instantaneamente
         fecharModais(); 
+        
     } catch(err) { 
-        console.error(err);
-        exibirToast("Erro ao sincronizar o perfil."); 
+        console.error("Erro na sincronização:", err);
+        exibirToast("Erro ao sincronizar dados com o banco."); 
     }
 }
 
