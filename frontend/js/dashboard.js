@@ -40,9 +40,7 @@ function abrirModal(id) {
     document.getElementById(id).classList.add('flex'); 
 }
 
-// CORREÇÃO UNIVERSAL DO FECHAMENTO DE MODAIS
 function fecharModais() { 
-    // Fecha pelo ID direto para garantir o funcionamento independente de classes CSS
     const modal = document.getElementById('perfilModal');
     if(modal) {
         modal.classList.add('hidden');
@@ -60,16 +58,20 @@ function logout() {
 // ==========================================
 function configurarMenuSuperior() {
     const authSection = document.getElementById("auth-section");
-    if (currentUser) {
+    if (currentUser && authSection) {
         const badgeAdmin = currentUser.is_admin ? '<span class="text-[10px] font-black tracking-wider bg-red-600 text-white px-2 py-0.5 rounded ml-2 shadow">ADMIN</span>' : '';
+        
+        // Anti-cache para a foto do menu superior
+        const avatarUrl = (currentUser.foto_url && currentUser.foto_url.trim() !== "") 
+            ? `${currentUser.foto_url}?t=${new Date().getTime()}`
+            : `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
+
         authSection.innerHTML = `
             <div class="flex items-center gap-3">
                 <span class="text-sm text-gray-400 hidden sm:block">
                     Olá, <strong class="text-white">${currentUser.nome}</strong> ${badgeAdmin}
                 </span>
-                <div class="w-9 h-9 rounded-full bg-purple-600/20 border border-purple-500/40 flex items-center justify-center font-bold text-sm text-purple-300 uppercase select-none">
-                    ${currentUser.nome.substring(0, 2)}
-                </div>
+                <img src="${avatarUrl}" class="w-9 h-9 rounded-full border border-purple-500/40 object-cover shadow-md select-none">
                 <button onclick="logout()" class="text-red-400 hover:text-red-300 text-xs font-bold px-3 py-2 border border-red-900/30 bg-red-900/10 rounded-xl transition-colors">Sair</button>
             </div>
         `;
@@ -82,6 +84,15 @@ async function carregarPrestadores() {
         if (!res.ok) throw new Error("Erro ao buscar prestadores");
         
         todosPrestadores = await res.json();
+        
+        // Sincroniza dinamicamente a foto nova dentro da lista global para o seu próprio card atualizar em tempo real
+        if(currentUser) {
+            const indexMudar = todosPrestadores.findIndex(p => p.id === currentUser.id);
+            if(indexMudar !== -1) {
+                todosPrestadores[indexMudar].foto_url = currentUser.foto_url;
+            }
+        }
+
         prestadoresFiltrados = [...todosPrestadores];
         
         gerarOpcoesDosFiltros();
@@ -105,6 +116,8 @@ function gerarOpcoesDosFiltros() {
     const selectCidade = document.getElementById("filter-city");
     const selectCategoria = document.getElementById("filter-category");
     
+    if(!selectCidade || !selectCategoria) return;
+
     selectCidade.innerHTML = '<option value="">Todas as cidades</option>';
     selectCategoria.innerHTML = '<option value="">Todas as categorias</option>';
     
@@ -149,6 +162,7 @@ function limparFiltros() {
 
 function renderizarGridCards() {
     const grid = document.getElementById("providers-grid");
+    if(!grid) return;
     grid.innerHTML = "";
     
     if (prestadoresFiltrados.length === 0) {
@@ -165,7 +179,11 @@ function renderizarGridCards() {
     prestadoresFiltrados.forEach(p => {
         const notaMedia = p.media_nota || 0;
         const totalAv = p.total_avaliacoes || 0;
-        const avatarUrl = (p.foto_url && p.foto_url.trim() !== "") ? p.foto_url : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
+        
+        // Injeção de anti-cache por carimbo de tempo para atualizar o Grid instantaneamente
+        const avatarUrl = (p.foto_url && p.foto_url.trim() !== "") 
+            ? `${p.foto_url}?t=${new Date().getTime()}` 
+            : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
             
         const btnAdmin = (currentUser && currentUser.is_admin && currentUser.id !== p.id) 
             ? `<button onclick="banirUsuario('${p.id}')" class="w-full mt-2 text-red-500/70 hover:text-red-400 text-xs font-semibold py-1 border border-red-900/30 bg-red-900/10 rounded">Banir Conta (Admin)</button>` 
@@ -207,13 +225,17 @@ function renderizarGridCards() {
 // EXPANSÃO DE PERFIL E HISTÓRICO DE DEPOIMENTOS
 // ==========================================
 async function abrirPerfil(email) {
-    // CORREÇÃO: Mudado de globalProviders para todosPrestadores
     const p = todosPrestadores.find(prov => prov.email === email);
     if (!p) return exibirToast("Profissional não encontrado.");
 
-    notaSelecionadaParaAvaliar = 0; // Reseta o seletor interno de estrelas do form
+    notaSelecionadaParaAvaliar = 0; 
     const content = document.getElementById('perfil-content');
-    const avatarUrl = (p.foto_url && p.foto_url.trim() !== "") ? p.foto_url : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
+    
+    // Sincroniza a imagem atualizada com timestamp contra cache
+    const avatarUrl = (p.foto_url && p.foto_url.trim() !== "") 
+        ? `${p.foto_url}?t=${new Date().getTime()}` 
+        : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
+        
     const servicos = p.servicos ? p.servicos.split(',') : ['Serviços Gerais'];
     const tagsHtml = servicos.map(s => `<span class="bg-purple-900/40 text-purple-300 px-3 py-1 text-sm rounded-full border border-purple-700/50">${esc(s.trim())}</span>`).join('');
     const notaReal = parseFloat(p.media_nota || 0).toFixed(1);
@@ -319,7 +341,6 @@ async function abrirPerfil(email) {
     renderizarListaDeAvaliacoesRealizadas(p.id);
 }
 
-// Pintura interativa das estrelas do formulário ao clicar
 function marcarEstrelasNoForm(nota) {
     notaSelecionadaParaAvaliar = nota;
     for (let i = 1; i <= 5; i++) {
@@ -334,7 +355,6 @@ function marcarEstrelasNoForm(nota) {
     }
 }
 
-// Busca e desenhos a lista de portfólio/feedbacks embaixo do perfil
 async function renderizarListaDeAvaliacoesRealizadas(prestadorId) {
     const box = document.getElementById("lista-depoimentos-container");
     try {
@@ -350,7 +370,7 @@ async function renderizarListaDeAvaliacoesRealizadas(prestadorId) {
         box.innerHTML = "";
         lista.forEach(av => {
             const estrelasRepetidas = '<span class="text-amber-400 font-bold">★</span>'.repeat(av.nota) + '<span class="text-gray-700">★</span>'.repeat(5 - av.nota);
-            const nomeCliente = av.cliente ? av.cliente.nome : 'Cliente Anonimo';
+            const nomeCliente = av.cliente ? av.cliente.nome : 'Cliente Anônimo';
             
             box.innerHTML += `
                 <div class="bg-[#0b0b14] border border-gray-800/60 p-4 rounded-xl space-y-2">
@@ -374,7 +394,6 @@ async function renderizarListaDeAvaliacoesRealizadas(prestadorId) {
     }
 }
 
-// Envio em FormData (Multi-part) da avaliação para aceitar o arquivo binário
 async function salvarNovaAvaliacaoCompleta(e, prestadorId) {
     e.preventDefault();
     if (notaSelecionadaParaAvaliar === 0) { alert("Por favor, selecione ao menos 1 estrela de nota."); return; }
@@ -401,7 +420,7 @@ async function salvarNovaAvaliacaoCompleta(e, prestadorId) {
 
         if (res.ok) {
             exibirToast("Avaliação e foto postadas com sucesso!");
-            carregarPrestadores(); // Recarrega os dados do dashboard
+            carregarPrestadores(); 
             fecharModais();
         } else {
             alert("Erro ao salvar avaliação.");
@@ -413,7 +432,7 @@ async function salvarNovaAvaliacaoCompleta(e, prestadorId) {
 }
 
 // ==========================================
-// FUNÇÕES DE EDIÇÃO DE PERFIL
+// FUNÇÕES DE EDIÇÃO DE PERFIL (FOTO_URL VIA STORAGE EXCLUSIVA)
 // ==========================================
 function carregarFormEdicao() {
     const content = document.getElementById('perfil-content');
@@ -423,7 +442,7 @@ function carregarFormEdicao() {
             <div class="bg-[#050508] p-4 rounded-xl border border-gray-800">
                 <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Sua Foto de Perfil (Arquivo)</label>
                 <input type="file" id="edit-foto-file" accept="image/*" class="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-purple-600/20 file:text-purple-300 hover:file:bg-purple-600/30 cursor-pointer">
-                <p class="text-[11px] text-gray-500 mt-2">Selecione uma imagem (.jpg, .png) do seu dispositivo.</p>
+                <p class="text-[11px] text-gray-500 mt-2">Selecione uma imagem (.jpg, .png, .webp) do seu dispositivo.</p>
             </div>
             <div>
                 <label class="text-sm text-gray-400 font-medium">Sua Profissão / Categoria</label>
@@ -449,17 +468,17 @@ function carregarFormEdicao() {
     `;
 }
 
-// CORREÇÃO DO SALVAR PERFIL (GARANTINDO A PERSISTÊNCIA DA FOTO URL)
 async function salvarPerfil(e) {
     e.preventDefault();
-    exibirToast("Atualizando dados...");
+    exibirToast("Processando atualizações...");
 
     try {
-        // 1. PRIMEIRO REALIZA O UPLOAD DA FOTO SE HOUVER ARQUIVO
-        let urlFotoAtualizada = currentUser.foto_url || "";
+        // 1. PRIMEIRO PASSO: Realiza o upload da foto se houver arquivo selecionado
+        let urlFotoFinal = currentUser.foto_url || "";
         const inputFoto = document.getElementById('edit-foto-file');
         
         if (inputFoto && inputFoto.files.length > 0) {
+            exibirToast("Enviando imagem para o banco de dados...");
             const formData = new FormData();
             formData.append("arquivo", inputFoto.files[0]);
 
@@ -470,35 +489,38 @@ async function salvarPerfil(e) {
 
             if (resFoto.ok) {
                 let dataFoto = await resFoto.json();
-                urlFotoAtualizada = dataFoto.foto_url; // Captura a URL pública real gerada pelo storage
+                urlFotoFinal = dataFoto.foto_url; // Recebe o link gerado pelo Storage
+            } else {
+                throw new Error("Falha no upload do arquivo.");
             }
         }
 
-        // 2. AGORA ENVIA O CORPO TEXTUAL INCLUINDO A NOVA FOTO_URL CORRETAMENTE
-        const dadosTexto = {
+        // 2. SEGUNDO PASSO: Envia os dados de texto acoplando a foto_url vinda do storage
+        const dadosCompletos = {
             categoria: document.getElementById('edit-cat').value,
             cidade: document.getElementById('edit-cid').value,
             servicos: document.getElementById('edit-serv').value,
             descricao: document.getElementById('edit-desc').value,
-            foto_url: urlFotoAtualizada // <-- INJETADO PARA NÃO PERDER A REFERÊNCIA NO BANCO
+            foto_url: urlFotoFinal // Injeta o link real para salvar de forma persistente no PostgreSQL
         };
 
         let resTexto = await fetch(`${API_URL}/perfil/${currentUser.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dadosTexto)
+            body: JSON.stringify(dadosCompletos)
         });
         
         if (!resTexto.ok) throw new Error("Erro ao salvar textos");
         let dataTexto = await resTexto.json();
         
-        // Atualiza a sessão local com a resposta limpa do banco
+        // 3. TERCEIRO PASSO: Atualiza a sessão e força o redesenho imediato das mídias na tela
         currentUser = dataTexto.user;
         localStorage.setItem('conectasul_session', JSON.stringify(currentUser));
         
         exibirToast("Perfil atualizado com sucesso!");
-        carregarPrestadores(); // Recarrega os avatares do Grid principal
-        fecharModais(); // Fecha a janela após salvar
+        configurarMenuSuperior(); // Atualiza a foto do header
+        await carregarPrestadores(); // Sincroniza a lista global e atualiza o seu card no grid na hora
+        fecharModais(); 
     } catch(err) { 
         console.error(err);
         exibirToast("Erro ao sincronizar o perfil."); 
@@ -520,8 +542,12 @@ async function fazerAgendamento(event, prestadorId) {
         const res = await fetch(`${API_URL}/agendamentos`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(agendamento)
         });
-        if (res.ok) { exibirToast("Agendamento solicitado com sucesso!"); fecharModais(); } 
-        else { exibirToast("Erro ao agendar."); }
+        if (res.ok) { 
+            exibirToast("Agendamento solicitado com sucesso!"); 
+            fecharModais(); 
+        } else { 
+            exibirToast("Erro ao agendar."); 
+        }
     } catch(e) { exibirToast("Erro de conexão."); }
 }
 
