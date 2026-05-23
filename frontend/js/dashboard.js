@@ -473,7 +473,7 @@ async function salvarPerfil(e) {
     exibirToast("Processando atualizações...");
 
     try {
-        let urlFotoFinal = currentUser.foto || "";
+        let urlFotoFinal = currentUser.foto_url || "";
         const inputFoto = document.getElementById('edit-foto-file');
         
         // 1. Upload da Foto
@@ -482,21 +482,21 @@ async function salvarPerfil(e) {
             const formData = new FormData();
             formData.append("arquivo", inputFoto.files[0]);
 
-            // Chamada direta para o endpoint de upload
             const resFoto = await fetch(`${API_URL}/perfil/${currentUser.id}/upload-foto`, {
                 method: 'POST',
                 body: formData
             });
 
-            if (resFoto.ok) {
-                let dataFoto = await resFoto.json();
-                 // A chave correta é foto_url
-                urlFotoFinal = dataFoto.foto_url; 
-            }
-
+            // Lemos o JSON apenas UMA VEZ aqui
             const dataFoto = await resFoto.json();
-            urlFotoFinal = dataFoto.foto || urlFotoFinal;
-            exibirToast("Imagem salva!");
+
+            if (resFoto.ok) {
+                urlFotoFinal = dataFoto.foto_url; 
+                exibirToast("Imagem salva!");
+            } else {
+                // Se der erro, usamos o JSON já lido para mostrar o detalhe
+                throw new Error(dataFoto.detail || "Falha no upload");
+            }
         }
 
         // 2. Atualização dos Textos
@@ -513,13 +513,12 @@ async function salvarPerfil(e) {
             body: JSON.stringify(dadosTexto)
         });
         
-        if (!resTexto.ok) throw new Error("Erro ao salvar textos");
-        
         const dataTexto = await resTexto.json();
+        if (!resTexto.ok) throw new Error(dataTexto.detail || "Erro ao salvar textos");
         
-        // 3. Sincronização
+        // 3. Sincronização Final
         currentUser = dataTexto.user;
-        currentUser.foto = urlFotoFinal; // Garante que a URL mais recente seja aplicada
+        currentUser.foto_url = urlFotoFinal; 
         
         localStorage.setItem('conectasul_session', JSON.stringify(currentUser));
         
@@ -533,7 +532,6 @@ async function salvarPerfil(e) {
         exibirToast("Erro: " + err.message); 
     }
 }
-
 // ==========================================
 // OUTROS ENVIOS: AGENDAMENTO E ADMIN
 // ==========================================
