@@ -61,9 +61,9 @@ function configurarMenuSuperior() {
     if (currentUser && authSection) {
         const badgeAdmin = currentUser.is_admin ? '<span class="text-[10px] font-black tracking-wider bg-red-600 text-white px-2 py-0.5 rounded ml-2 shadow">ADMIN</span>' : '';
         
-        // Anti-cache para a foto do menu superior
-        const avatarUrl = (currentUser.foto_url && currentUser.foto_url.trim() !== "") 
-            ? `${currentUser.foto_url}?t=${new Date().getTime()}`
+        // AJUSTE: Mapeado para ler 'foto' e injetar anti-cachetemporal
+        const avatarUrl = (currentUser.foto && currentUser.foto.trim() !== "") 
+            ? `${currentUser.foto}?t=${new Date().getTime()}`
             : `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
 
         authSection.innerHTML = `
@@ -85,11 +85,11 @@ async function carregarPrestadores() {
         
         todosPrestadores = await res.json();
         
-        // Sincroniza dinamicamente a foto nova dentro da lista global para o seu próprio card atualizar em tempo real
+        // AJUSTE: Sincroniza dinamicamente a propriedade 'foto' na lista global
         if(currentUser) {
             const indexMudar = todosPrestadores.findIndex(p => p.id === currentUser.id);
             if(indexMudar !== -1) {
-                todosPrestadores[indexMudar].foto_url = currentUser.foto_url;
+                todosPrestadores[indexMudar].foto = currentUser.foto;
             }
         }
 
@@ -180,9 +180,9 @@ function renderizarGridCards() {
         const notaMedia = p.media_nota || 0;
         const totalAv = p.total_avaliacoes || 0;
         
-        // Injeção de anti-cache por carimbo de tempo para atualizar o Grid instantaneamente
-        const avatarUrl = (p.foto_url && p.foto_url.trim() !== "") 
-            ? `${p.foto_url}?t=${new Date().getTime()}` 
+        // AJUSTE: Busca da propriedade 'foto' sincronizada e com tratamento anti-cache
+        const avatarUrl = (p.foto && p.foto.trim() !== "") 
+            ? `${p.foto}?t=${new Date().getTime()}` 
             : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
             
         const btnAdmin = (currentUser && currentUser.is_admin && currentUser.id !== p.id) 
@@ -231,9 +231,9 @@ async function abrirPerfil(email) {
     notaSelecionadaParaAvaliar = 0; 
     const content = document.getElementById('perfil-content');
     
-    // Sincroniza a imagem atualizada com timestamp contra cache
-    const avatarUrl = (p.foto_url && p.foto_url.trim() !== "") 
-        ? `${p.foto_url}?t=${new Date().getTime()}` 
+    // AJUSTE: Renderização interna do modal com base na propriedade 'foto'
+    const avatarUrl = (p.foto && p.foto.trim() !== "") 
+        ? `${p.foto}?t=${new Date().getTime()}` 
         : `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nome)}&background=7c3aed&color=fff&size=150&bold=true`;
         
     const servicos = p.servicos ? p.servicos.split(',') : ['Serviços Gerais'];
@@ -432,7 +432,7 @@ async function salvarNovaAvaliacaoCompleta(e, prestadorId) {
 }
 
 // ==========================================
-// FUNÇÕES DE EDIÇÃO DE PERFIL (FOTO_URL VIA STORAGE EXCLUSIVA)
+// FUNÇÕES DE EDIÇÃO DE PERFIL
 // ==========================================
 function carregarFormEdicao() {
     const content = document.getElementById('perfil-content');
@@ -473,18 +473,15 @@ async function salvarPerfil(e) {
     exibirToast("Processando atualizações...");
 
     try {
-        let urlFotoFinal = currentUser.foto_url || "";
+        // AJUSTE: Sincroniza usando a chave 'foto'
+        let urlFotoFinal = currentUser.foto || "";
         const inputFoto = document.getElementById('edit-foto-file');
         
-        // ==========================================
-        // 1. PASSO EXCLUSIVO DA FOTO (STORAGE)
-        // ==========================================
         if (inputFoto && inputFoto.files.length > 0) {
             exibirToast("Enviando imagem para o banco...");
             const formData = new FormData();
             formData.append("arquivo", inputFoto.files[0]);
 
-            // Dispara para a Rota 6 do seu backend: @router.post("/perfil/{usuario_id}/upload-foto")
             let resFoto = await fetch(`${API_URL}/perfil/${currentUser.id}/upload-foto`, {
                 method: 'POST',
                 body: formData
@@ -492,17 +489,13 @@ async function salvarPerfil(e) {
 
             if (resFoto.ok) {
                 let dataFoto = await resFoto.json();
-                urlFotoFinal = dataFoto.foto_url; // Link gerado e persistido pelo Supabase Storage
+                urlFotoFinal = dataFoto.foto_url; 
                 exibirToast("Imagem salva com sucesso!");
             } else {
                 console.error("Falha ao processar arquivo no bucket.");
             }
         }
 
-        // ==========================================
-        // 2. PASSO DOS DADOS TEXTUAIS (PUT)
-        // ==========================================
-        // Montamos o objeto exatamente como o seu modelo Pydantic 'PerfilUpdate' espera no Python
         const dadosTexto = {
             categoria: document.getElementById('edit-cat').value,
             cidade: document.getElementById('edit-cid').value,
@@ -510,30 +503,27 @@ async function salvarPerfil(e) {
             descricao: document.getElementById('edit-desc').value
         };
 
-        // Dispara para a Rota 2 do seu backend: @router.put("/perfil/{usuario_id}")
         let resTexto = await fetch(`${API_URL}/perfil/${currentUser.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dadosTexto) // Envia sem a propriedade 'foto_url' para não gerar erro 422
+            body: JSON.stringify(dadosTexto)
         });
         
         if (!resTexto.ok) throw new Error("O backend rejeitou a atualização dos dados textuais.");
         
         let dataTexto = await resTexto.json();
         
-        // ==========================================
-        // 3. ATUALIZAÇÃO DA SESSÃO LOCAL E INTERFACE
-        // ==========================================
-        // Mesclamos o retorno textual do banco com a url da foto atualizada no primeiro passo
+        // AJUSTE: Puxa o objeto e garante que a sessão armazene 'foto' de forma persistente
         currentUser = dataTexto.user;
-        currentUser.foto_url = urlFotoFinal; 
+        if (!currentUser.foto || currentUser.foto.trim() === "") {
+            currentUser.foto = urlFotoFinal; 
+        }
         
-        // Salva os dados atualizados na sessão do navegador
         localStorage.setItem('conectasul_session', JSON.stringify(currentUser));
         
         exibirToast("Perfil atualizado com sucesso!");
-        configurarMenuSuperior(); // Atualiza na hora o avatar do topo direito
-        await carregarPrestadores(); // Sincroniza a lista global e atualiza o seu card no grid instantaneamente
+        configurarMenuSuperior(); 
+        await carregarPrestadores(); 
         fecharModais(); 
         
     } catch(err) { 
