@@ -392,7 +392,6 @@ async function renderizarListaDeAvaliacoesRealizadas(prestadorId) {
 async function salvarNovaAvaliacaoCompleta(e, prestadorId) {
     e.preventDefault();
     
-    // Validação básica
     if (notaSelecionadaParaAvaliar === 0) { 
         alert("Por favor, selecione ao menos 1 estrela de nota."); 
         return; 
@@ -405,24 +404,26 @@ async function salvarNovaAvaliacaoCompleta(e, prestadorId) {
         exibirToast("Processando avaliação...");
         
         const formData = new FormData();
-        formData.append("prestador_id", prestadorId);
-        formData.append("cliente_id", currentUser.id);
-        formData.append("nota", notaSelecionadaParaAvaliar);
-        formData.append("comentario", comentarioTxt);
+        
+        // Enviamos os dados como um JSON stringificado
+        const dadosAvaliacao = {
+            prestador_id: prestadorId,
+            cliente_id: currentUser.id,
+            nota: parseInt(notaSelecionadaParaAvaliar),
+            comentario: comentarioTxt
+        };
+        formData.append("dados", JSON.stringify(dadosAvaliacao));
 
         // Adiciona a foto apenas se ela existir
         if (inputFoto && inputFoto.files.length > 0) {
             formData.append("arquivo", inputFoto.files[0]);
         }
 
-        // IMPORTANTE: Não defina headers. O navegador detecta o FormData 
-        // e define o Content-Type com o 'boundary' correto automaticamente.
         const res = await fetch(`${API_URL}/avaliar`, {
             method: 'POST',
-            body: formData
+            body: formData // O navegador define o Content-Type automaticamente
         });
 
-        // Captura o JSON de resposta para verificar o sucesso
         const data = await res.json();
 
         if (res.ok) {
@@ -430,7 +431,6 @@ async function salvarNovaAvaliacaoCompleta(e, prestadorId) {
             carregarPrestadores(); 
             fecharModais();
         } else {
-            // Se o servidor retornar erro (ex: 400 ou 500), lançamos para o catch
             throw new Error(data.detail || "Erro ao salvar avaliação.");
         }
     } catch (err) {

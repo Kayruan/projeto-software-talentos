@@ -1,10 +1,15 @@
+import json
+import time # <-- NOVO: Necessário para gerar nomes únicos para as fotos
+from typing import Optional # <-- NOVO: Necessário para o Optional[UploadFile]
+
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
-from models import LoginRequest, RegistroRequest, AgendamentoRequest, AvaliacaoRequest, PerfilUpdate
 from database import supabase
+
+# <-- MUDANÇA: O AvaliacaoRequest foi removido desta linha!
+from models import LoginRequest, RegistroRequest, AgendamentoRequest, PerfilUpdate 
 
 # Criamos o roteador principal
 router = APIRouter()
-
 # ==========================================
 # 1. AUTENTICAÇÃO E REGISTRO
 # ==========================================
@@ -117,21 +122,22 @@ def atualizar_status_agendamento(agendamento_id: str, novo_status: str, valor_or
 
 @router.post("/avaliar")
 async def avaliar_prestador(
-    prestador_id: str = Form(...),
-    cliente_id: str = Form(...),
-    nota: int = Form(...),
-    comentario: Optional[str] = Form(""),
+    dados: str = Form(...), # Recebe a string JSON do frontend
     arquivo: Optional[UploadFile] = File(None)
 ):
     try:
-        # ALTERAÇÃO: Inicialize como None para que o banco receba NULL
+        # Converte a string JSON para dicionário
+        dados_dict = json.loads(dados)
+        prestador_id = dados_dict.get("prestador_id")
+        cliente_id = dados_dict.get("cliente_id")
+        nota = dados_dict.get("nota")
+        comentario = dados_dict.get("comentario", "")
+
         foto_url = None 
 
         if arquivo:
             conteudo_foto = await arquivo.read()
             extensao = arquivo.filename.split(".")[-1]
-            # Adicione um timestamp para garantir nomes únicos e evitar sobrescrita
-            import time
             nome_arquivo = f"av_{prestador_id}_{cliente_id}_{int(time.time())}.{extensao}"
             
             supabase.storage.from_("fotos-conectasul").upload(
@@ -146,21 +152,17 @@ async def avaliar_prestador(
             "cliente_id": cliente_id,
             "nota": nota,
             "comentario": comentario,
-            "foto_url": foto_url # Se for None, o Supabase gravará NULL
+            "foto_url": foto_url
         }
         
         supabase.table("avaliacoes").insert(dados_avaliacao).execute()
         
-        # ... resto do código (cálculo da média e update do prestador) ...
-        
-        # 3. Recalcula a média de estrelas em tempo real do prestador
+        # Recálculo da média
         todas_av = supabase.table("avaliacoes").select("nota").eq("prestador_id", prestador_id).execute()
-        
         notas = [av['nota'] for av in todas_av.data]
         total = len(notas)
         nova_media = sum(notas) / total if total > 0 else 0
         
-        # 4. Atualiza o perfil do prestador com o novo score totalizado
         supabase.table("usuarios").update({
             "media_nota": round(nova_media, 2),
             "total_avaliacoes": total
@@ -169,21 +171,9 @@ async def avaliar_prestador(
         return {"status": "sucesso", "nova_media": nova_media, "foto_url": foto_url}
         
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Erro ao registrar avaliação: {str(e)}")
-    
-
-@router.get("/avaliacoes/prestador/{prestador_id}")
-def listar_avaliacoes_prestador(prestador_id: str):
-    try:
-        # Busca os comentários trazendo o nome do cliente que avaliou
-        response = supabase.table("avaliacoes")\
-            .select("*, cliente:usuarios!cliente_id(nome)")\
-            .eq("prestador_id", prestador_id)\
-            .execute()
-        return response.data
-    except Exception as e:
+        print(f"Erro no backend: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
-
+    
 # ==========================================
 # 5. ADMINISTRAÇÃO E MODERAÇÃO (CORRIGIDO)
 # ==========================================
