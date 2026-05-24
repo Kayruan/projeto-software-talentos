@@ -352,9 +352,28 @@ function marcarEstrelasNoForm(nota) {
 
 async function renderizarListaDeAvaliacoesRealizadas(prestadorId) {
     const box = document.getElementById("lista-depoimentos-container");
+    
+    // Verificação de segurança: Se não tiver ID, nem tenta buscar
+    if (!prestadorId) {
+        console.error("renderizarListaDeAvaliacoesRealizadas chamada sem prestadorId");
+        box.innerHTML = `<p class="text-red-500 text-xs">Erro: Profissional não identificado.</p>`;
+        return;
+    }
+
     try {
-        const res = await fetch(`${API_URL}/avaliacoes/prestador/${prestadorId}`);
-        if (!res.ok) throw new Error("Erro ao buscar avaliações");
+        // Monta a URL e exibe no console para você verificar se está correta
+        const urlBusca = `${API_URL}/avaliacoes/prestador/${prestadorId}`;
+        console.log("Buscando avaliações em:", urlBusca);
+        
+        const res = await fetch(urlBusca);
+        
+        if (res.status === 404) {
+            throw new Error("Rota não encontrada no servidor (404).");
+        }
+        if (!res.ok) {
+            throw new Error(`Erro ao buscar avaliações (Status: ${res.status})`);
+        }
+        
         const lista = await res.json();
 
         if (!lista || lista.length === 0) {
@@ -367,12 +386,10 @@ async function renderizarListaDeAvaliacoesRealizadas(prestadorId) {
             const estrelasRepetidas = '<span class="text-amber-400 font-bold">★</span>'.repeat(av.nota) + '<span class="text-gray-700">★</span>'.repeat(5 - av.nota);
             const nomeCliente = av.cliente ? av.cliente.nome : 'Cliente Anônimo';
             
-            // Tratamento da URL da foto: remove espaços e adiciona cache-busting se necessário
             const fotoUrl = av.foto_url ? av.foto_url.trim() : null;
-            
             let htmlFoto = "";
+            
             if (fotoUrl && fotoUrl.length > 0) {
-                // Adicionamos um timestamp ?t=... para garantir que o navegador busque a imagem atualizada
                 const fotoUrlComCache = `${fotoUrl}${fotoUrl.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
                 
                 htmlFoto = `
@@ -398,10 +415,11 @@ async function renderizarListaDeAvaliacoesRealizadas(prestadorId) {
             `;
         });
     } catch (err) {
-        console.error("Erro no mural:", err);
-        box.innerHTML = `<p class="text-red-500 text-xs">Não foi possível carregar o mural de feedbacks.</p>`;
+        console.error("Erro detalhado no mural:", err);
+        box.innerHTML = `<p class="text-red-500 text-xs">Erro ao carregar feedbacks: ${err.message}</p>`;
     }
 }
+
 
 async function salvarNovaAvaliacaoCompleta(e, prestadorId) {
     e.preventDefault();

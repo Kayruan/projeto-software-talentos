@@ -224,3 +224,14 @@ async def upload_foto_perfil(usuario_id: str, arquivo: UploadFile = File(...)):
         return {"status": "sucesso", "foto_url": url_publica}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+@router.get("/avaliacoes/prestador/{prestador_id}")
+def listar_avaliacoes_prestador(prestador_id: str):
+    try:
+        response = supabase.table("avaliacoes")\
+            .select("*, cliente:usuarios!cliente_id(nome)")\
+            .eq("prestador_id", prestador_id)\
+            .execute()
+        return response.data
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
