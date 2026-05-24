@@ -354,7 +354,7 @@ async function renderizarListaDeAvaliacoesRealizadas(prestadorId) {
     const box = document.getElementById("lista-depoimentos-container");
     try {
         const res = await fetch(`${API_URL}/avaliacoes/prestador/${prestadorId}`);
-        if (!res.ok) throw new Error();
+        if (!res.ok) throw new Error("Erro ao buscar avaliações");
         const lista = await res.json();
 
         if (!lista || lista.length === 0) {
@@ -367,6 +367,25 @@ async function renderizarListaDeAvaliacoesRealizadas(prestadorId) {
             const estrelasRepetidas = '<span class="text-amber-400 font-bold">★</span>'.repeat(av.nota) + '<span class="text-gray-700">★</span>'.repeat(5 - av.nota);
             const nomeCliente = av.cliente ? av.cliente.nome : 'Cliente Anônimo';
             
+            // Tratamento da URL da foto: remove espaços e adiciona cache-busting se necessário
+            const fotoUrl = av.foto_url ? av.foto_url.trim() : null;
+            
+            let htmlFoto = "";
+            if (fotoUrl && fotoUrl.length > 0) {
+                // Adicionamos um timestamp ?t=... para garantir que o navegador busque a imagem atualizada
+                const fotoUrlComCache = `${fotoUrl}${fotoUrl.includes('?') ? '&' : '?'}t=${new Date().getTime()}`;
+                
+                htmlFoto = `
+                    <div class="mt-2">
+                        <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Foto do Serviço Realizado:</p>
+                        <img src="${fotoUrlComCache}" 
+                             class="w-full max-w-xs h-40 object-cover rounded-lg border border-gray-800 shadow shadow-purple-950/20 cursor-zoom-in" 
+                             onclick="window.open('${fotoUrl}', '_blank')"
+                             onerror="this.style.display='none'">
+                    </div>
+                `;
+            }
+            
             box.innerHTML += `
                 <div class="bg-[#0b0b14] border border-gray-800/60 p-4 rounded-xl space-y-2">
                     <div class="flex justify-between items-center">
@@ -374,17 +393,12 @@ async function renderizarListaDeAvaliacoesRealizadas(prestadorId) {
                         <div class="text-xs">${estrelasRepetidas}</div>
                     </div>
                     <p class="text-gray-400 text-sm italic leading-relaxed">"${esc(av.comentario || 'Apenas deu a nota.')}"</p>
-                    
-                    ${av.foto_url ? `
-                        <div class="mt-2">
-                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Foto do Serviço Realizado:</p>
-                            <img src="${av.foto_url}" class="w-full max-w-xs h-40 object-cover rounded-lg border border-gray-800 shadow shadow-purple-950/20 cursor-zoom-in" onclick="window.open('${av.foto_url}', '_blank')">
-                        </div>
-                    ` : ''}
+                    ${htmlFoto}
                 </div>
             `;
         });
     } catch (err) {
+        console.error("Erro no mural:", err);
         box.innerHTML = `<p class="text-red-500 text-xs">Não foi possível carregar o mural de feedbacks.</p>`;
     }
 }
